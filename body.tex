@@ -1,6 +1,213 @@
-\section{Introduction}
+\section{Introduction} \label{sec:intro}
 
-\textbf{Put your paper here.}
+The Vera C.\ Rubin Observatory will carry out the 10-year Legacy Survey of Space and Time (LSST; \citealt{ivezic2019lsst}), imaging approximately 18{,}000~deg$^{2}$ of the southern sky in six broadband, optical--NIR filters ($ugrizy$). Achieving the LSST science goals requires calibrating the instrument with high precision and uniformity so that raw detector readouts can be transformed into science-ready images and catalogs. Errors or non-uniformities in image calibration can introduce survey-scale photometric and astrometric systematics that propagate into downstream measurements and may be degenerate with astrophysical or cosmological signals \citep{esteves2023artificialstars}.
+
+Delivering this level of calibration is challenging because of the scale and complexity of the LSST instrumentation and optical system, the operational cadence of the survey, and the precision requirements on the resulting data products. Key challenges include:
+
+\begin{enumerate}
+    \item \textbf{Instrument complexity:} The LSST Camera (LSSTCam) is the largest digital camera built for astronomy. Its 3.2-gigapixel focal plane comprises 205 fully depleted, backside-illuminated CCDs from two separate vendors (Teledyne e2v and International Technologies Laboratory, hereafter E2V and ITL). Detector-to-detector and amplifier-level variations require calibration and processing algorithms that are robust to heterogeneous sensor behavior.
+    \item \textbf{Data volume and cadence:} LSSTCam typically acquires 30~s exposures with $\leq$3~s readout, yielding approximately 1000 exposures per night, and data rates of order 10~TB per night.
+    \item \textbf{Calibration illumination and optics:} The calibration system (dome flats, LEDs, monochromator, and the Collimated Beam Projector or CBP) must deliver uniform and repeatable illumination over a large focal plane through a fast ($f/1.2$) optical system.
+    \item \textbf{Coupled instrumental effects:} Instrument artifacts must be corrected in the reverse chronological order in which they arise in the photon transfer chain, while the calibration data used to model those signatures are often obtained and combined in a forward (chronological) way. Many effects are partially degenerate, requiring iterative or ``bootstrapped'' approaches to produce self-consistent calibration products.
+    \item \textbf{Evolving conditions and cadence:} Changing environmental conditions, multi-epoch calibration datasets, and evolving observing strategies require calibration production to be robust to non-uniform operations. The construction of calibrations for DP2 utilized datasets collected from in-dome calibration system before the completion of dome construction, thermal regulation systems, and before finalization of the excat operational mode of the detectors.
+    \item \textbf{Stringent precision requirements:} Meeting LSST science requirements demands exceptionally stable and well-characterized calibrations across the full focal plane and over the survey lifetime \citep{lsst_srd}.
+    \item \textbf{Verification, provenance, and operational reproducibility:} Calibration products must be accompanied by quantitative diagnostics that enable rapid assessment of data quality, comparisons across time and software versions, and clear acceptance and certification decisions for downstream processing. Products must be reproducible, versioned, and continuously validated as the instrument and algorithms evolve.
+    
+\end{enumerate}
+
+The Rubin Science Pipelines implement this functionality through production pipelines and supporting tooling that generate, verify, and publish calibration products for routine processing. The design incorporates lessons learned from precursor surveys, including the Hyper Suprime-Cam Subaru Strategic Program \citep{aihara2018hsc} and the Dark Energy Survey \citep{des_dr1}.
+
+The first end-to-end demonstration of Rubin data processing on a substantial, internally consistent LSSTCam dataset is \emph{Data Preview 2} (DP2). DP2 covers $\sim$1000~deg$^{2}$ in all six filters and includes data acquired during commissioning and pre-survey operations. This paper describes the calibration-production algorithms and operational approach used to generate the calibration products for DP2.
+
+Our goals are to (1) make the DP2 calibration products interpretable to science users, (2) quantify our confidence in the quality of released data products, (3) provide a reference for future cross-survey synergies and science analyses, (4) make the processing reproducible for pipeline developers and operators, and (5) provide a reference point for expected improvements on the path to the first public data release from LSST.
+
+The paper is organized as follows. In \S\ref{sec:dp2} we summarize the DP2 dataset. In \S\ref{sec:calsys} we describe the telescope system and calibration system hardware and limitations. In \S\ref{sec:prod} we describe the calibration production workflow, including input data selection and output data products. In \S\ref{sec:calibration} we document each calibration product and its construction algorithms. In \S\ref{sec:verification} we present the verification, acceptance, and certification criteria and the mechanisms used to distribute and access the resulting products. We wil show real performance metrics evaluated on the camera and on science images that will be processed in DP2. Finally, in \S\ref{sec:limitations} we discuss known limitations and expected improvements toward the first LSST data release (DR1).
+
+\section{Overview of Data Preview 2 (DP2)}\label{sec:dp2}
+Summarize the DP2 context relevant to calibrations:
+instrument, filters, observing period, detector layout, exposure types available
+(bias/dark/flat/science), and as well as definitions of calibration epochs. Possibly add a science context.
+
+\section{Calibration System (CalSys)}\label{sec:calsys}
+Provde descriptions of auxiliary telescope/CBP/flat field illuminator/LEDs/monochrometer and any instrumentation used for input datasets. Describe any system-level constraints that influenced calibration strategy
+
+Describe the LSST Camera and any technical limitations (bad detectors/amps). Introduce and define the sequencer.
+
+\section{Calibration Production} \label{sec:prod}
+
+This section provides an overview of the processing flow. Figure/table references can be added later to summarize dependencies between inputs, intermediate products, and final outputs.
+
+\subsection{Pipeline Overview} \label{sec:prod:overview}
+Include ISR workflow and calibration production dependency graph.
+
+\begin{figure*}[t]
+    \centering
+    \begin{tikzpicture}[
+      node distance=0.9em and 1.4em,
+      every node/.style={draw, ellipse, align=center, font=\small},
+      bootstrap/.style={dashed},
+      every edge/.style={draw, arr},
+      bend angle=15,
+      feedback/.style={draw, arr, bend left=30, dashed},
+      to box/.style={shorten >=0pt},
+  ]
+      % Top row: Bootstrap nodes (dashed borders)
+      \node[bootstrap] (biasboot) {Bias\\(Bootstrap)};
+      \node[bootstrap, right=of biasboot] (darkboot) {Dark\\(Bootstrap)};
+      \node[bootstrap, right=of darkboot] (flatboot) {Flat\\(Bootstrap)};
+    
+      % Second row: Defects
+      \node (defects) [below=1.6em of darkboot] {Defects};
+    
+      % Third row: Linearizer, Crosstalk
+      \node (linearizer) [below=1.6em of defects] {Linearizer};
+      \node (crosstalk) [left=2.2em of linearizer] {Crosstalk\\Matrix};
+    
+      % Fourth row: CTI, PTC
+      \node (cti) [below=1.6em of linearizer] {CTI};
+      \node (ptc) [below=1.6em of cti] {PTC};
+    
+      % Fifth row: Bias, Dark, Flat (triangle: Bias--Dark on top, Flat below center)
+      \node (bias) [below left=4em and 1em of crosstalk] {Bias};
+      \node (dark) [right=1.5em of bias] {Dark};
+      \node (flat) [below=2.5em of $(bias)!0.5!(dark)$] {Flat};
+      \node (bf) [below=3em of ptc] {Brighter-Fatter\\Distortion\\Matrix};
+
+      % Box around Bias, Dark, Flat: fit node for arrow targets, draw box on background
+      \node[draw, fit=(bias)(dark)(flat), inner sep=0em, outer sep=0pt] (calibbox) {};
+    
+      % Bootstrap -> Defects
+      \draw[arr] (biasboot) -- (defects);
+      \draw[arr] (darkboot) -- (defects);
+      \draw[arr] (flatboot) -- (defects);
+    
+      % Defects -> Linearizer, CTI, PTC, and to calib box
+      \draw[arr] (defects) -- (linearizer);
+      \draw[arr] (defects) to[bend left=90] (cti);
+      \draw[arr] (defects) to[bend left=100] (ptc);
+      \draw[arr, to box] (defects.west) to[bend right=55] (calibbox.north west);
+
+      % Linearizer -> CTI, PTC, and to calib box
+      \draw[arr] (linearizer) -- (cti);
+      \draw[arr] (linearizer) to[bend left=80] (ptc);
+      \draw[arr, to box] (linearizer) -- (calibbox.north east);
+
+      % Crosstalk -> Linearizer, PTC, and to calib box
+      \draw[arr] (crosstalk) -- (linearizer);
+      \draw[arr] (crosstalk) -- (ptc);
+      \draw[arr] (crosstalk) -- (defects);
+      \draw[arr, to box] (crosstalk) to[bend right=15] (calibbox.north);
+
+      % CTI -> PTC, and to calib box
+      \draw[arr] (cti) -- (ptc);
+      \draw[arr, to box] (cti) to[bend left=15] (calibbox.east);
+
+      % PTC -> Brighter-Fatter, and to calib box
+      \draw[arr] (ptc) -- (bf);
+      \draw[arr, to box] (ptc) to[bend left=25] (calibbox.south east);
+    
+      % Bias -> Dark, Flat
+      \draw[arr] (bias) -- (dark);
+      \draw[arr] (bias) -- (flat);
+      \draw[arr] (dark) -- (flat);
+    
+\end{tikzpicture}
+\caption{Calibration production dependency graph. Arrows indicate data or dependency flow. The checkmark on the PTC$\rightarrow$Flat edge denotes a primary dependency. Dashed arcs indicate feedback (e.g., flat-field data used to refine earlier calibration stages).}
+\label{fig:calib-dependency}
+\end{figure*}
+
+
+
+
+\subsection{Inputs and Data Selection} \label{sec:prod:data}
+We define the input exposure types (e.g., bias, dark, flat, and science frames) and the metadata required to group them (detector identifiers, timestamps, etc.). We also define terminology used throughout the paper (``calibration product``).
+
+We describe the selection rules used to build calibration sets (sequencers, time windows, quality cuts, outlier rejection, and minimum number of images) and note any detector- or amplifier-level exceptions.
+
+\subsubsection{Curated Calibrations} \label{sec:prod:curated_calibs}
+\subsubsection{Auxiliary Data Products} \label{sec:prod:auxiliary data products}
+
+\section{Calibration Products} \label{sec:calibration}
+
+This section documents the algorithms and outputs for each calibration type. 
+
+At the start of this section, include a pipelines overview, where we outline the pipeline stages that produce calibration products w/ISR, including the order of operations, and the data products written at each stage.
+
+\subsection{Crosstalk} \label{sec:calibration:xtalk}
+Describe the construction of the crosstalk matrices
+
+\subsection{Defects} \label{sec:calibration:defects}
+
+We describe how defect masks are generated (bad pixels/columns, saturation trails, and other artifacts), the thresholds used, and how masks are combined across exposures.
+
+\subsection{Linearity} \label{sec:calibration:linearity}
+
+We describe the linearity characterization procedure and the model used to correct detector response as a function of signal level. We specify the valid range and how extrapolation (if any) is treated.
+
+\subsection{Charge Transfer Inefficiency (CTI)} \label{sec:calibration:cti}
+
+We describe how CTI is measured (e.g., using overscan/EPER or dedicated sequences), the parameterization adopted, and how uncertainties propagate to corrected images.
+
+\subsection{Photon Transfer Curve (PTC)} \label{sec:calibration:ptc}
+
+We describe the PTC measurement (pair-difference method, region selection, and fit model) and how it yields gain, read noise, and related detector parameters.
+
+\subsection{Brighter-Fatter (BF) Distortion Matrix} \label{sec:calibration:bf}
+
+We describe the measurement of the brighter-fatter effect, how correlations are estimated, and how the resulting kernel/matrix is stored and validated.
+
+\subsection{Bias} \label{sec:calibration:bias}
+
+We describe how master biases are constructed (overscan handling, trimming, combination statistic, and masking) and the metrics used to monitor stability over time.
+
+\subsection{Dark} \label{sec:calibration:dark}
+
+We describe how master darks are produced (scaling by exposure time, cosmic-ray rejection, hot pixel treatment) and how residual structures are assessed.
+
+\subsection{Flats} \label{sec:calibration:flats}
+
+We describe how flat-field calibrations are created (illumination correction strategy, normalization conventions, and handling of fringing/stray light) and how uniformity is quantified.
+
+\section{Differences between different calibration epochs}
+Describe how calibrations have shifted with different calibration epochs (sequencer changes). 
+
+Describe the set of criteria that prompt a new set calibrations.
+
+\section{Verification, Acceptance, and Certification} \label{sec:verification}
+
+This section defines the quality metrics for calibration products and ISR outputs. This section will define the criteria used to promote products to ``accepted'' and ``certified''.
+
+\subsection{Data products, Distribution, and User Access} \label{sec:data-products}
+Describe the output schema, distribution process (exporting/importing, rucio, TAXICAB tracking) and user access.
+
+We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance captured for each product (inputs, software versions, and configuration).
+
+We briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
+
+\subsection{Verification} \label{sec:verification}
+
+We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis tool plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products. 
+
+
+\subsection{Acceptance}
+In this section we will describe the calibration acceptance process (TAXICAB).
+
+We describe how verified products are compared against earlier baselines to detect regressions and deviations, and how acceptance decisions are documented.
+
+\subsection{Certification}
+We describe the final certification step in the context of the data "butler" and file system storage.
+
+\subsection{Data Monitoring}
+We discuss how we monitor incoming streams of new data for quality (e.g. rubinTV, plot navigator, trend monitoring w/ chronograph).
+
+
+\section{Limitations and Expected Improvements for Data Release 1 (DR1)} \label{sec:limitations}
+Summarize known limitations for DP2 (instrumental systematics not fully corrected, edge cases, missing calibrations, validity constraints) and near-term roadmap items.
+
+\section{Conclusion} \label{sec:conclusion}
+
+We summarize the workflow and the key validation steps that ensure stable, reproducible calibration production and ISR. We also outline planned improvements (algorithmic updates, expanded diagnostics, and operational automation) and the expected impact on data quality.
+
 \vskip 0.4in
 
 
