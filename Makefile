@@ -13,7 +13,9 @@ endif
 
 export TEXMFHOME ?= lsst-texmf/texmf
 
-$(DOCNAME).pdf: $(tex) local.bib authors.tex
+# lineno.sty is TeX Live's lineno (ISO-8859-1) converted to UTF-8 for XeLaTeX; refresh with:
+#   iconv -f ISO-8859-1 -t UTF-8 "$(shell kpsewhich lineno.sty)" > lineno.sty
+$(DOCNAME).pdf: $(tex) local.bib authors.tex lineno.sty .latexmkrc
 	latexmk -bibtex -xelatex -f $(DOCNAME)
 
 authors.tex:  authors.yaml
