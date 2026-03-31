@@ -31,7 +31,7 @@ This paper is organized as follows.
 \S\ref{sec:data} introduces the observatory hardware and instrumentation that supplied the inputs for DP2 calibrations.
 \S\ref{sec:processing} presents the physical detector model and the calibration and instrument signature removal (ISR) pipeline, including algorithms and data products used in production.
 \S\ref{sec:discussion} discusses calibration-epoch differences and residual systematics relevant to DP2.
-\S\ref{sec:verify_accept_certify} describes how calibration products are verified, accepted, certified, and deployed.
+\S\ref{sec:verify-accept-certify} describes how calibration products are verified, accepted, certified, and deployed.
 \S\ref{sec:conclusion} summarizes the DP2 calibration quality and outlines expected improvements toward Data Release~1 (DR1).
 
 \section{Data}\label{sec:data}
@@ -56,13 +56,13 @@ Describe the data selection process for the DP2 dataset.
 The calibration and instrument signature removal (ISR) pipeline removes instrumental effects from science data.
 For each effect observed in LSSTCam, the Rubin Science Pipelines define a calibration-generation task that produces the corresponding data product, and a correction task that applies that product during ISR.
 
-\subsection{Detector Model} \label{sec:processing:detector_physics}
+\subsection{Detector Model} \label{sec:processing:detector-physics}
 Calibration and ISR tasks are organized as a pipeline based on our current model of the detector physics.
 The calibration production tasks are run in chronological order with respect to the photon transfer and data-acquisition chain, and ISR correction tasks are applied in the opposite order to the sequence in which effects accumulate along the signal path.
 
 The algorithms and processing steps required for LSSTCam calibration and ISR were developed from measurements and analysis during electro-optical testing on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope in-dome during commissioning.
 \citet{roodman2024lsst-9d4} gives a detailed account of system characterization work and results from these campaigns.
-Figure~\ref{fig:detector_boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
+Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
 
 \begin{figure*}[t]
     \centering
@@ -70,7 +70,7 @@ Figure~\ref{fig:detector_boxes} summarizes the instrumental effects identified i
     \caption{Photon transfer and data-acquisition model for the LSSTCam detectors and electronic readout board (REB).
     Instrumental effects seen in images are shown as dashed boxes; arrows indicate where each effect enters the chain.
     Low-signal nonlinearities in LSSTCam's detector response have been observed, but their origin is not yet established; that contribution appears as a disconnected box.}
-    \label{fig:detector_boxes}
+    \label{fig:detector-boxes}
 \end{figure*}
 
 ... describe the detector physics ...
@@ -88,9 +88,9 @@ We may also include a table of the data product and the name of the associated c
     \label{fig:calib-dependency}
 \end{figure*}
 
-\subsubsection{Curated Calibrations} \label{sec:processing:calibration:curated_calibs}
+\subsubsection{Curated Calibrations} \label{sec:processing:calibration:curated-calibs}
 
-\subsubsection{Auxiliary Data Products} \label{sec:processing:calibration:auxiliary_data_products}
+\subsubsection{Auxiliary Data Products} \label{sec:processing:calibration:auxiliary-data-products}
 
 \subsubsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 Describe how the crosstalk matrices are constructed.
@@ -133,34 +133,34 @@ Describe how calibrations have changed across different calibration epochs (sequ
 
 List the set of criteria that prompt a new round of calibrations.
 
-\section{Verification, Acceptance, and Certification} \label{sec:verify_accept_certify}
+\section{Verification, Acceptance, and Certification} \label{sec:verify-accept-certify}
 
 This section defines the quality metrics for calibration products and ISR outputs.
 Here we define the criteria used to promote products to ``accepted'' and ``certified''.
 
-\subsection{Data products, Distribution, and User Access} \label{sec:verify_accept_certify:data-products}
+\subsection{Data products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
 Describe the output schema, distribution process (exporting/importing, rucio, TAXICAB tracking), and user access.
 
 We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
 
 Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
 
-\subsection{Verification} \label{sec:verify_accept_certify:verification}
+\subsection{Verification} \label{sec:verify-accept-certify:verification}
 
 We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
 
-\subsection{Acceptance} \label{sec:verify_accept_certify:acceptance}
+\subsection{Acceptance} \label{sec:verify-accept-certify:acceptance}
 This section will describe the calibration acceptance process (TAXICAB).
 
 Describe how verified products are compared against earlier baselines to reveal regressions or deviations, and how acceptance decisions are documented.
 
-\subsection{Certification} \label{sec:verify_accept_certify:certification}
+\subsection{Certification} \label{sec:verify-accept-certify:certification}
 Describe the final certification step in the context of the data ``butler'' and file system storage.
 
-\subsection{Data Monitoring} \label{sec:verify_accept_certify:data_monitoring}
+\subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
 Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
 
-\subsection{Limitations} \label{sec:verify_accept_certify:limitations}
+\subsection{Limitations} \label{sec:verify-accept-certify:limitations}
 Summarize known limitations for DP2 (instrumental systematics not fully corrected, edge cases, missing calibrations, validity constraints) and near-term roadmap items.
 
 \section{Conclusion} \label{sec:conclusion}
