@@ -8,4 +8,5 @@
 *.xdv
 *.dvi
 *.pdf
+!figures/*.pdf
 authors.tex
