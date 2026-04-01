@@ -13,7 +13,10 @@ endif
 
 export TEXMFHOME ?= lsst-texmf/texmf
 
-$(DOCNAME).pdf: $(tex) local.bib authors.tex
+figures/calib-dependency.pdf: figures/to-make-calib-dependency.tex
+	cd figures && pdflatex -interaction=nonstopmode -halt-on-error -jobname=calib-dependency to-make-calib-dependency.tex
+
+$(DOCNAME).pdf: $(tex) local.bib authors.tex figures/calib-dependency.pdf
 	latexmk -bibtex -xelatex -f $(DOCNAME)
 
 authors.tex:  authors.yaml
@@ -26,5 +29,6 @@ clean:
 	rm -f $(DOCNAME).pdf
 	rm -f meta.tex
 	rm -f authors.tex
+	rm -f figures/calib-dependency.pdf figures/calib-dependency.aux figures/calib-dependency.log
 
 .FORCE:
