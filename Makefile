@@ -13,11 +13,13 @@ endif
 
 export TEXMFHOME ?= lsst-texmf/texmf
 
-figures/calib-dependency.pdf: figures/to-make-calib-dependency.tex
-	cd figures && pdflatex -interaction=nonstopmode -halt-on-error -jobname=calib-dependency to-make-calib-dependency.tex
-
+# Default goal: full technote. figures/calib-dependency.pdf is a prerequisite, so it
+# is built first whenever it is missing or older than its source.
 $(DOCNAME).pdf: $(tex) local.bib authors.tex figures/calib-dependency.pdf
 	latexmk -bibtex -xelatex -f $(DOCNAME)
+
+figures/calib-dependency.pdf: figures/to-make-calib-dependency.tex
+	cd figures && pdflatex -interaction=nonstopmode -halt-on-error -jobname=calib-dependency to-make-calib-dependency.tex
 
 authors.tex:  authors.yaml
 	python3 $(TEXMFHOME)/../bin/db2authors.py -m aas7 > authors.tex
