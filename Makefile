@@ -3,6 +3,7 @@ DOCNUMBER = 117
 DOCNAME = $(DOCTYPE)-$(DOCNUMBER)
 
 tex = $(filter-out $(wildcard *acronyms.tex) , $(wildcard *.tex))
+section_tex = $(wildcard sections/*.tex)
 
 GITVERSION := $(shell git log -1 --date=short --pretty=%h)
 GITDATE := $(shell git log -1 --date=short --pretty=%ad)
@@ -15,7 +16,7 @@ export TEXMFHOME ?= lsst-texmf/texmf
 
 # Default goal: full technote. figures/calib-dependency.pdf is a prerequisite, so it
 # is built first whenever it is missing or older than its source.
-$(DOCNAME).pdf: $(tex) local.bib authors.tex figures/calib-dependency.pdf
+$(DOCNAME).pdf: $(tex) $(section_tex) local.bib authors.tex figures/calib-dependency.pdf
 	latexmk -bibtex -xelatex -f $(DOCNAME)
 
 figures/calib-dependency.pdf: figures/to-make-calib-dependency.tex
