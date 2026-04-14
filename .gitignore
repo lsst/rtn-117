@@ -10,3 +10,4 @@
 *.pdf
 !figures/*.pdf
 authors.tex
+AGENTS.md
