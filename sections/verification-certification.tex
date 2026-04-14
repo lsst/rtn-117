@@ -1,0 +1,29 @@
+\section{Verification, Acceptance, and Certification} \label{sec:verify-accept-certify}
+
+This section defines the quality metrics for calibration products and ISR outputs.
+Here we define the criteria used to promote products to ``accepted'' and ``certified''.
+
+\subsection{Data products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
+Describe the output schema, distribution process (exporting/importing, rucio, TAXICAB tracking), and user access.
+
+We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
+
+Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
+
+\subsection{Verification} \label{sec:verify-accept-certify:verification}
+
+We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
+
+\subsection{Acceptance} \label{sec:verify-accept-certify:acceptance}
+This section will describe the calibration acceptance process (TAXICAB).
+
+Describe how verified products are compared against earlier baselines to reveal regressions or deviations, and how acceptance decisions are documented.
+
+\subsection{Certification} \label{sec:verify-accept-certify:certification}
+Describe the final certification step in the context of the data ``butler'' and file system storage.
+
+\subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
+Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
+
+\subsection{Limitations} \label{sec:verify-accept-certify:limitations}
+Summarize known limitations for DP2 (instrumental systematics not fully corrected, edge cases, missing calibrations, validity constraints) and near-term roadmap items.
