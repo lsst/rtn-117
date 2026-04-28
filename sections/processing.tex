@@ -42,6 +42,66 @@ We may also include a table of the data product and the name of the associated c
 \subsubsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 Describe how the crosstalk matrices are constructed.
 
+\subsubsection{Photon Transfer Curve (PTC)} \label{sec:processing:calibration:ptc}
+
+The photon transfer curve (PTC) characterizes how pixels respond to varying signal levels in a given wavelength band by measuring covariances between pixels in flat field exposures across a range of illumination levels.
+This dataset provides critical calibration information including amplifier-level read noise and gain for variance plane estimation, saturation thresholds for masking, and parameters needed to correct for non-linearity, charge transfer inefficiency (CTI), and the brighter-fatter effect.
+All of these parameters can differ at the amplifier level.
+
+The photon transfer curve used to calibrate LSSTCam for DP2 is measured from $543\times2$ flat field exposures at evenly spaced illumination levels as low 100~ADU and reaching at least 10\% beyond saturation.
+At each illumination level, a pair of flats was acquired by varying both LED output and exposure time to achieve the target signal.
+We measure the covariance between pixels on the difference image of the two exposures to remove variations sourced by static, fixed-pattern artifacts.
+
+Let $F_1$ and $F_2$ denote the two flats at a given illumination level, and let $\mu = \mathrm{avg}(F_1,F_2)$ denote the mean signal level (in ADU) over the image and away from the detector edges.
+The covariance between a pixel $\mathbf{x}=(0,0)$ and a neighbor at pixel $\mathbf{x'}=(i,j)$ is:
+\begin{equation}
+    C_{ij} \;=\; \tfrac{1}{2}\,
+    \mathrm{Cov}\!\left(F_1(\mathbf{x})-F_2(\mathbf{x}),\,
+                       F_1(\mathbf{x}')-F_2(\mathbf{x}')\right).
+\end{equation}
+
+% Following the standard front-illuminated CCD convention, serial (row) readout proceeds along $(1,0)$ and parallel (column) readout along $(0,1)$.
+
+\paragraph{Pre-model fit}
+Preliminarily, we fit only the variance to an approximate exponential relation derived in \citet{astier-2019} (their Eq.~16).
+\begin{equation}
+    C_{00}^{\mathrm{exp.\,approx}}(\mu) = \frac{1}{2 g^2 a_{00}}\bigl[\exp(2 a_{00} \mu g) - 1\bigr] + \frac{n_{00}}{g^2}\ .
+\end{equation}
+In this expression, covariances are contributed by a gain $g$ (electrons$/\mathrm{ADU}$), noise pedestal $n_{00}$ (electrons$^2$), and a single brighter-fatter coefficient $a_{00}$ ($1/$electrons) which has the effect of decreasing the image variance.
+
+Near saturation, the variance deviates from this functional form, exhibiting a gradual rollover rather than a sharp cutoff due to electrostatic effects that are difficult to model analytically.
+On top of the exponential approximation, we introduce an empirical saturation term:
+\begin{equation}
+    C_{00}^{\mathrm{sat}}(\mu) = \left\{
+        \begin{array}{ll}
+            -e^{-(\mu-\mu_0)/\tau} & \mu \ge \mu_0 \\
+            0 & \mu < \mu_0
+        \end{array}
+    \right.,
+\end{equation}
+where $\mu_0$ marks the onset of the saturation effects and $\tau$ controls the saturation rollover.
+The total preliminary fit model is $C_{00}^{\mathrm{pre.\;lim.}}(\mu) = C_{00}^{\mathrm{exp.\,approx}}(\mu) + C_{00}^{\mathrm{sat}}(\mu)$ to the unweighted points, and fit with additional 3~sigma clipping until convergence.
+The PTC turnoff becomes the signal level of the last unmasked point following the exponential approximation fit, typically corresponding to the maximum of the variance curve and generally higher than the roll-off threshold.
+The PTC rolloff is the signal level where $C_{00}^{\mathrm{pre.\;lim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}$ deviate by more than 1\%.
+
+\paragraph{Final model fit}
+With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{astier-2019} (their Eq.~20):
+\begin{equation}
+    \begin{split}
+    C_{ij}(\mu) = \frac{\mu}{g} \Bigl[\delta_{i0}\delta_{j0} + a_{ij}\mu g + \frac{2}{3}[\mathbf{a}\otimes\mathbf{a} + \mathbf{ab}]_{ij}(\mu g)^{2} \\
+    + \frac{1}{6}[2\mathbf{a}\otimes\mathbf{a}\otimes\mathbf{a} + 5\mathbf{a}\otimes\mathbf{ab}]_{ij}(\mu g)^{3} + \mathcal{O}[(\mu g)^4] \Bigr] + \frac{n_{ij}}{g^2},
+    \end{split}
+    \label{eq:cov_model}
+\end{equation}
+where $a_{ij}$ (electrons)$^{-1}$ represents the fractional change in pixel area per stored charge due to boundary motion from the brighter-fatter effect, $b_{ij}$ (electrons)$^{-1}$ captures weaker time-dependent corrections (discussed in §~TBD), $g$ is the gain (electrons$/\mathrm{ADU}$), and $n_{ij}$ is the constant noise contribution (electrons)$^2$ (e.g., $n_{00}\sim (5.7\,\mathrm{electrons})^{2}$ on the diagonal, with off-diagonal terms determined by read electronics and overscan).
+The symbol $\mathbf{ab}$ denotes element-wise matrix multiplication, and $\otimes$ represents discrete convolution.
+In practice, $b_{ij}$ parameter is inferred to be just noise around a value of zero.
+
+The PTC calibration products are applied during instrument signature removal of science images in three ways.
+First, the gain converts pixel values from ADU to electrons.
+Second, the gain and read noise inform variance plane estimation.
+Third, the saturated pixel mask flag (denoted``SAT") is set for all pixels with values greater than or equal to the PTC turnoff threshold.
+
 \subsubsection{Defects} \label{sec:processing:calibration:defects}
 
 We describe how defect masks are generated (bad pixels/columns, saturation trails, and other artifacts), the thresholds used, and how masks are combined across exposures.
@@ -54,10 +114,6 @@ We specify the valid range and how extrapolation (if any) is treated.
 \subsubsection{Charge Transfer Inefficiency (CTI)} \label{sec:processing:calibration:cti}
 
 We describe how CTI is measured (e.g., using overscan/EPER or dedicated sequences), the chosen parameterization, and how uncertainties propagate to corrected images.
-
-\subsubsection{Photon Transfer Curve (PTC)} \label{sec:processing:calibration:ptc}
-
-We describe the PTC measurement (pair-difference method, region selection, fitting model) and how it yields gain, read noise, and related detector parameters.
 
 \subsubsection{Brighter-Fatter (BF) Distortion Matrix} \label{sec:processing:calibration:bf}
 
