@@ -6,7 +6,31 @@ Optionally add science context.
 Describe LSSTCam, including detector layout, the electronic readout board (REB), and the filters.
 
 \subsection{Calibration System (CalSys)}\label{sec:data:calsys}
-Provide descriptions of auxiliary telescope/CBP/flat field illuminator/LEDs/monochromator and any instrumentation used for input datasets.
+
+\subsubsection{Camera Calibration Optical Bench}\label{sec:data:calsys:ccob}
+
+To create optical scenes for characterization, the Camera is placed in-line with an optical scene projector called the Camera Calibration Optical Bench (CCOB) \citep{2024SPIE13103E..0WU}. The CCOB has two configurations.
+
+The CCOB-wide beam is designed to project a uniform monochromatic light source onto the focal plane. Light is produced by one of six LEDs, each corresponding to a central wavelength in the LSST filter bandpass, is controlled by a custom LED driver and fed into an integrating sphere. The light from the integrating sphere is projected onto the focal plane with a minimal ND filter (10\%) attached to a C-mount lens with an adjustable f/stop. The CCOB-wide beam was used in run 6 and run 7.
+
+The CCOB-narrow beam is designed to project narrow beams of monochromatic light onto specific locations of the focal plane to study spatial throughput, ghosting, and reflections. Light is produced by a tunable laser source on a X/Y and $\theta / \phi$ motor drives. Total throughput can be measured by combining different positions and angles of the CCOB-narrow beam. The CCOB-narrow beam was used in run 6 only.
+
+For run 7 on Level 3 of Vera Rubin Observatory, we achieved a dark current of \textless0.1 ADU/sec with the shutter open. One difference between run 6 and run 7 was that the f/stop of the lens was changed from 2.6 to 1.6 (fully open). This was done to try to reduce the effect of the `weather' and the `CMB pattern' two effects that we found in Run 6 and were found to be due to our projection setup (\citet{2024arXiv241113386B}). While changing the f/stop  did reduce the weather pattern, it also caused a much steeper illumination roll-off across the focal plane. We evaluated the weather pattern and illumination roll-off relative to Run 6.
+
+To reduce the effects of the `weather' and `CMB' but retain uniform illumination across the focal plane, we installed a diffuser to the CCOB-wide beam for run 7. The diffuser used is a $60^o$ diffusing angle unmounted sheet from Edmunds Optics. We found that the diffuser greatly reduced the `weather', eliminated the CMB pattern, more uniformly illuminated the focal plane, with a penalty of decreasing the overall illumination by roughly 35\%. The diffuser was installed for all run 7 record runs using the CCOB Wide Beam.
+
+\subsubsection{Collimated Beam Projector}\label{sec:data:calsys:cbp}
+
+The Collimated Beam Projector (CBP) is a monochromatic calibration source installed to the Simonyi Survey telescope at Rubin Observatory. The CBP provides a monochromatic collimated beam directed at the primary mirror. The CBP is designed as a Schmidt reflector telescope run in reverse, with a fiber-fed tunable laser that covers the LSST bandpass from 350nm - 1250nm. The CBP supports five different masks for spot and flat projection onto the LSSTCam focal-plane. 
+
+Provide descriptions of 
+- auxiliary telescope
+- CBP \textbf{Started, but likely needs additional text}
+- flat field illuminator
+- LEDs
+- monochromator 
+- any other instrumentation used for input datasets.
+
 Describe any system-level constraints that influenced calibration strategy.
 
 Describe the LSST Camera and any technical limitations (bad detectors/amps).
