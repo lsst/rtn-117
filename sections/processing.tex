@@ -79,28 +79,32 @@ On top of the exponential approximation, we introduce an empirical saturation te
         \end{array}
     \right.,
 \end{equation}
-where $\mu_0$ marks the onset of the saturation effects and $\tau$ controls the saturation rollover.
-The total preliminary fit model is $C_{00}^{\mathrm{pre.\;lim.}}(\mu) = C_{00}^{\mathrm{exp.\,approx}}(\mu) + C_{00}^{\mathrm{sat}}(\mu)$ to the unweighted points, and fit with additional 3~sigma clipping until convergence.
-The PTC turnoff becomes the signal level of the last unmasked point following the exponential approximation fit, typically corresponding to the maximum of the variance curve and generally higher than the roll-off threshold.
-The PTC rolloff is the signal level where $C_{00}^{\mathrm{pre.\;lim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}$ deviate by more than 1\%.
+where $\mu_0$ marks the onset of the PTC "rolloff" effects and $\tau$ controls the shape of the rollover.
+The total preliminary fit model is $C_{00}^{\mathrm{prelim.}}(\mu) = C_{00}^{\mathrm{exp.\,approx}}(\mu) + C_{00}^{\mathrm{sat}}(\mu)$ to the unweighted points. This fit is performed iteratively with additional 3~sigma clipping until convergence.
+The ``PTC turnoff" is defined as the signal level of the last unmasked point following the fit to only the exponential approximation fit, typically corresponding to the maximum of the variance curve and generally higher than the rolloff threshold.
+The ``PTC rolloff" is the signal level where $C_{00}^{\mathrm{pre.\;lim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}$ deviate by more than 1\%.
 
 \paragraph{Final model fit}
 With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{astier-2019} (their Eq.~20):
 \begin{equation}
-    \begin{split}
-    C_{ij}(\mu) = \frac{\mu}{g} \Bigl[\delta_{i0}\delta_{j0} + a_{ij}\mu g + \frac{2}{3}[\mathbf{a}\otimes\mathbf{a} + \mathbf{ab}]_{ij}(\mu g)^{2} \\
-    + \frac{1}{6}[2\mathbf{a}\otimes\mathbf{a}\otimes\mathbf{a} + 5\mathbf{a}\otimes\mathbf{ab}]_{ij}(\mu g)^{3} + \mathcal{O}[(\mu g)^4] \Bigr] + \frac{n_{ij}}{g^2},
-    \end{split}
+    \begin{aligned}
+    C_{ij}(\mu) = \frac{\mu}{g} \Bigl[ \delta_{i0}\delta_{j0}
+      &+ a_{ij}\mu g \\
+      &+ \frac{2}{3}\left([\mathbf{a}\otimes\mathbf{a} + \mathbf{ab}]_{ij}\right)(\mu g)^{2} \\
+      &+ \frac{1}{6}\left(2\mathbf{a}\otimes\mathbf{a}\otimes\mathbf{a} + 5\mathbf{a}\otimes\mathbf{ab}\right)_{ij}(\mu g)^{3} \\
+      &+ \mathcal{O}[(\mu g)^4]
+    \Bigr] + \frac{n_{ij}}{g^2},
+    \end{aligned}
     \label{eq:cov_model}
 \end{equation}
 where $a_{ij}$ (electrons)$^{-1}$ represents the fractional change in pixel area per stored charge due to boundary motion from the brighter-fatter effect, $b_{ij}$ (electrons)$^{-1}$ captures weaker time-dependent corrections (discussed in §~TBD), $g$ is the gain (electrons$/\mathrm{ADU}$), and $n_{ij}$ is the constant noise contribution (electrons)$^2$ (e.g., $n_{00}\sim (5.7\,\mathrm{electrons})^{2}$ on the diagonal, with off-diagonal terms determined by read electronics and overscan).
 The symbol $\mathbf{ab}$ denotes element-wise matrix multiplication, and $\otimes$ represents discrete convolution.
-In practice, $b_{ij}$ parameter is inferred to be just noise around a value of zero.
+In practice, $b_{ij}$ parameter is inferred to be just noise around a value of zero. The size of the covariance matrix ($n \times n$) is determined by the range of the brighter-fatter effect (see \S\ref{sec:processing:calibration:bf}).
 
 The PTC calibration products are applied during instrument signature removal of science images in three ways.
 First, the gain converts pixel values from ADU to electrons.
 Second, the gain and read noise inform variance plane estimation.
-Third, the saturated pixel mask flag (denoted``SAT") is set for all pixels with values greater than or equal to the PTC turnoff threshold.
+Third, the saturated pixel mask flag (denoted ``SAT") is set for all pixels with values greater than or equal to the PTC turnoff threshold.
 
 \subsubsection{Defects} \label{sec:processing:calibration:defects}
 
@@ -115,9 +119,73 @@ We specify the valid range and how extrapolation (if any) is treated.
 
 We describe how CTI is measured (e.g., using overscan/EPER or dedicated sequences), the chosen parameterization, and how uncertainties propagate to corrected images.
 
-\subsubsection{Brighter-Fatter (BF) Distortion Matrix} \label{sec:processing:calibration:bf}
 
-We describe the measurement of the brighter-fatter effect, how correlations are estimated, and how the resulting kernel/matrix is stored and validated.
+\subsubsection{Brighter-Fatter Effect} \label{sec:processing:calibration:bf}
+
+The brighter-fatter (BF) effect is the first influence the detector has on an incident signal (Figure~\ref{fig:detector-boxes}). Accumulated electrons in a pixel repel incoming charges into neighboring pixels.
+Brighter point sources therefore appear wider in the recorded images. This electrostatic effect reduces to effective change in pixel area and introduces correlations between nearby pixel values.
+The effect is intrinsic to thick CCDs and can significantly bias PSF photometry and shape measurement.
+
+The BF effect has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{broughton2024}.
+The strength of the effect is anisotropic ($a_{01}/a_{10} \sim 3$), long-ranged ($\sim 10$px), and wavlength dependent.
+It is also about twice as strong in the E2V-family detectors as in ITL-family detectors.
+
+Several BF correction methods have been proposed and implemented in the LSST Science Pipelines \citep{gruen-2015,coulton-2018,astier-regnault-2023,broughton2024}, and they differ widely in their underlying assumptions.
+\citet{broughton2024} found that modeling individual boundary shifts for every pixel (N, S, E, W) is required for adequate correction at the level needed for LSST Y10 science requirements.
+Flat-field pixel correlations can measure only the net per-pixel area change, so determining these boundary shifts requires additional electrostatic modeling.
+For processing raw images from DP2, we use the \citet{astier-regnault-2023} algorithm developed for Hyper Suprime-Cam, which derives from electrostatic physics and treats each pixel boundary individually.
+
+% The correction assumes three simplifying conditions.
+% First, the average charge current into a pixel is approximately constant during a long exposure, even when the PSF varies with time.
+% Second, fourth-order terms in Eq.~\ref{eq:cov_model} are negligible; at the scale of the BF effect, the corresponding coefficients are of order $10^{-24}$.
+% Third, photons convert to electrons quickly after entering the detector.
+% Simulations and empirical modeling indicate that most photons in $u$ through $i$ bands convert within the top few microns of silicon, while the BF influence on charge drifting to the pixel bottom occurs primarily in the last several microns.
+% Chromatic effects are therefore likely negligible for photons with wavelengths across the LSST bandpasses.
+
+\begin{deluxetable}{ll}[t!]
+    \tablecaption{Parameter Priors for the Electrostatic BFE Model Fit\label{tab:bf-electrostatic-fit-priors}}
+    \tablehead{
+        \colhead{Parameter} & \colhead{Prior}
+    }
+    \startdata
+        Si thickness, $t$ ($\mu$m)        & $100$ (fixed) \\
+        Pixel size, $p$ ($\mu$m)         & $10$ (fixed) \\
+        Charge cloud height, $z_q$ ($\mu$m)      & $0 \leq z_q \leq t/2$ \\
+        Charge cloud length, $a$ ($\mu$m)        & $10^{-5} \leq a \leq 0.35\,p$ \\
+        Charge cloud width, $b$ ($\mu$m)         & $10^{-5} \leq b \leq 0.35\,p$ \\
+        Potential well vertex height,\\horizontal $z_{sh}$ ($\mu$m)    & $0 \leq z_{sh} \leq t/2$ \\
+        Potential well vertex height,\\vertical $z_{sv}$ ($\mu$m)    & $0 \leq z_{sv} \leq t/2$ \\
+    \enddata
+    \tablecomments{Priors on the fit parameters are informed by pixel-level simulations of the electric fields in these pixels \citep{Lage_2017}. The potential well vertices refer to the heights above the front-side of the CCD to the saddlepoints in the electric field that defines the pixel boundaries in the veritical (0, 1) and horizontal (1, 0) directions. The electrostatic model assumes that the stored chare cloud in the sensor takes the form of a flat, rectangular sheet of charge with length ($a$) and width ($b$). The inequality constraints $z_{sh} > z_q$, $z_{sv} > z_q$ are enforced during optimization, which is true in the unsaturated signal level regime.}
+\end{deluxetable}
+
+Calibration of the BFE using this algorithm takes the form of modeling a charge cloud at the bottom of a pixel, computing
+how the effective areas of nearby pixels would be expected to change electrostatically in response. It adjusts some geometric parameters (summarized in Table~\ref{tab:bf-electrostatic-fit-priors}), and solves
+Gauss's law to compute the shift of pixel boundaries and the relative change in pixel area from each shift ($\mathbf{a}^{\mathrm{N}}$,
+$\mathbf{a}^{\mathrm{S}}$, $\mathbf{a}^{\mathrm{E}}$, $\mathbf{a}^{\mathrm{W}}$). We optimize these parameters best-fit the
+measured net pixel area changes ($\mathbf{a}$ from Eq.~\ref{eq:cov_model}):
+\begin{equation}
+    \mathbf{a} = \mathbf{a}^{\mathrm{N}} + \mathbf{a}^{\mathrm{S}} + \mathbf{a}^{\mathrm{E}} + \mathbf{a}^{\mathrm{W}}.
+\end{equation}
+
+In principle, the BFE can vary amplifier-to-amplifier, but we have observed only noise-level variations in the pixel distortion matrices across amplifiers and even detector families.
+For this reason, and to avoid discontinuous amplifier boundaries, the fit is performed at the detector level.
+All $a_{ij}$ matrices from well-behaved amplifiers are 3$\sigma$-clipped elementwise and averaged into a detector-mean $a_{ij}$; the scatter becomes the per-element uncertainty , and a single fit is run against this average pixel distortion matrix.
+The output calibration data product is the set of model parameters and a model that can be evaulated per-detector.
+
+Applying this calibration to remove the effect during ISR uses the boundary-shift matrices $\mathbf{a}^{\mathrm{N}}$, $\mathbf{a}^{\mathrm{S}}$, $\mathbf{a}^{\mathrm{E}}$, and $\mathbf{a}^{\mathrm{W}}$ to redistribute flux accordingly.
+We tile these into two, $(2n+1)\times(2n+1)$, convolution kernels $K^{H}$ and $K^{V}$ for the horizontal and vertical shifts, respectively; we apply sign flips and edge adjustments so each matrix sums to zero.
+These matrices need not be symmetric, which is more realistic per \citet{broughton2024}.
+For an image $Q_{ij}$ in natural gain-corrected units of electrons, the amount of charge lost over the vertical and horizontal boundaries is:
+\begin{align}
+    \delta^{H}_{ij} &= \tfrac{1}{2}\!\!\sum_{kl}\!\!K^{H}_{kl}\,Q_{i-k,\,j-l}, \notag \\
+    \delta^{V}_{ij} &= \tfrac{1}{2}\!\!\sum_{kl}\!\!K^{V}_{kl}\,Q_{i-k,\,j-l},
+    \label{eq:bf-shift}
+\end{align}
+The $1/2$ prefactor accounts for the average BFE assuming a constant rate of charge accumulation during an exposure.
+The corrected image is assembled by removing the charge each pixel lost across its $N$/$E$ boundaries and adding what it gained from $S$/$W$ neighbors, guaranteeing charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$.
+This correction does not require iterative convolutions. Unlike the \citet{coulton-2018} algorithm used for DP1 \citep{2025rubn.rept...31N}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
+
 
 \subsubsection{Bias} \label{sec:processing:calibration:bias}
 
