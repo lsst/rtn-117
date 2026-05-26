@@ -117,7 +117,25 @@ We specify the valid range and how extrapolation (if any) is treated.
 
 \subsubsection{Charge Transfer Inefficiency (CTI)} \label{sec:processing:calibration:cti}
 
-We describe how CTI is measured (e.g., using overscan/EPER or dedicated sequences), the chosen parameterization, and how uncertainties propagate to corrected images.
+During serial readout, a fraction of charge can be delayed rather than transferred with each clock cycle.
+This deferred charge---charge transfer inefficiency (CTI)---produces serial charge tails and flux-dependent structure in overscan regions adjacent to the imaging area.
+We measure and correct these effects with the extended pixel edge response (EPER) method of \citet{snyder2021}, implemented in calibration production (\texttt{cp\_pipe}) and instrument signature removal (\texttt{ip\_isr}).
+
+The CTI calibration uses the same flat-field illumination sequence as the photon transfer curve (\S\ref{sec:processing:calibration:ptc}): paired flats spanning a wide range of signal levels.
+Figure~\ref{fig:calib-dependency} shows that CTI production depends on defect masks and the linearizer; the PTC fit can in turn use CTI-corrected data when that correction is enabled upstream.
+For each input exposure, the \texttt{cpCti} pipeline runs \texttt{cpCtiIsr} (\texttt{lsst.ip.isr.IsrTaskLSST}) with CTI statistics enabled, applying defect masking, linearity correction, and gains from the linearizer but not applying a CTI correction.
+Per amplifier and exposure, \texttt{lsst.ip.isr.IsrStatistics} records the mean image signal in electrons, means in the first and last imaging columns and rows, and mean profiles in the serial and parallel overscan regions, together with the gain and PTC turnoff used for that exposure.
+\texttt{cpCtiSolve} (\texttt{lsst.cp.pipe.CpCtiSolveTask}) combines these measurements across the flat sequence for each detector and writes a \texttt{DeferredChargeCalib} dataset (Butler type \texttt{cti}).
+
+Following \citet{snyder2021}, the calibration parameterizes deferred charge at the amplifier level with a global serial CTI $b$ (\texttt{globalCti}), local electronic offsets with drift scale $A_L$ and decay time $\tau_L$ (\texttt{driftScale}, \texttt{decayTime}), and a serial charge-trap model (\texttt{serialTraps}) whose capture probability can depend on signal in the last imaging column.
+\texttt{CpCtiSolveTask} fits these parameters in stages: EPER estimates and serial/parallel CTI turnoff levels; local offset parameters from early serial overscan columns; global CTI with a simulated serial readout; and finally the trap capture curve from residuals between model and data (E2V-family detectors use a zero-size trap by default).
+Exposures above configured flux limits are excluded from each stage (typically $10^4$~electrons for the global CTI fit and $1.5\times10^5$~electrons for trap fitting).
+The calibration also stores EPER versus signal curves, the input gains used for the statistics, and sampling uncertainties on the turnoff levels.
+
+During science ISR, \texttt{DeferredChargeTask} applies the inverse operators from \citet{snyder2021} when \texttt{doDeferredCharge} is enabled.
+The correction operates in electron units after linearity and parallel overscan processing and before bias and dark subtraction---the reverse of the order in which deferred charge accumulates along the readout path.
+For each amplifier, unused prescan and parallel overscan pixels are zeroed, the data are oriented with the readout corner at lower left, and two steps are applied: removal of local offset tails, then correction for global CTI and serial trapping.
+The exposure metadata flag \texttt{LSST ISR CTI APPLIED} records when this correction has been run.
 
 
 \subsubsection{Brighter-Fatter Effect} \label{sec:processing:calibration:bf}
