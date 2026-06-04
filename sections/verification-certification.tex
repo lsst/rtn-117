@@ -10,6 +10,8 @@ We enumerate the primary data products (calibration frames, ISR outputs, masks, 
 
 Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
 
+Be sure to mention that header metadata contains information about whether a particular ISR step was applied/not applied and what calibraiton dataset what used.
+
 \subsection{Verification} \label{sec:verify-accept-certify:verification}
 
 We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
@@ -25,5 +27,5 @@ Describe the final certification step in the context of the data ``butler'' and 
 \subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
 Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
 
-\subsection{Limitations} \label{sec:verify-accept-certify:limitations}
+\section{Limitations \& Known Issues} \label{sec:limitations}
 Summarize known limitations for DP2 (instrumental systematics not fully corrected, edge cases, missing calibrations, validity constraints) and near-term roadmap items.
