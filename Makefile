@@ -14,13 +14,16 @@ endif
 
 export TEXMFHOME ?= lsst-texmf/texmf
 
-# Default goal: full technote. figures/calib-dependency.pdf is a prerequisite, so it
-# is built first whenever it is missing or older than its source.
-$(DOCNAME).pdf: $(tex) $(section_tex) local.bib authors.tex figures/calib-dependency.pdf
+# Default goal: full technote. Figure PDFs are prerequisites and are built first when
+# missing or older than their sources.
+$(DOCNAME).pdf: $(tex) $(section_tex) local.bib authors.tex figures/calib-dependency.pdf figures/isr-pipeline.pdf
 	latexmk -bibtex -xelatex -f $(DOCNAME)
 
 figures/calib-dependency.pdf: figures/to-make-calib-dependency.tex
 	cd figures && pdflatex -interaction=nonstopmode -halt-on-error -jobname=calib-dependency to-make-calib-dependency.tex
+
+figures/isr-pipeline.pdf: figures/to-make-isr-pipeline.tex
+	cd figures && pdflatex -interaction=nonstopmode -halt-on-error -jobname=isr-pipeline to-make-isr-pipeline.tex
 
 authors.tex:  authors.yaml
 	python3 $(TEXMFHOME)/../bin/db2authors.py -m aas7 > authors.tex
@@ -33,5 +36,6 @@ clean:
 	rm -f meta.tex
 	rm -f authors.tex
 	rm -f figures/calib-dependency.pdf figures/calib-dependency.aux figures/calib-dependency.log
+	rm -f figures/isr-pipeline.pdf figures/isr-pipeline.aux figures/isr-pipeline.log
 
 .FORCE:
