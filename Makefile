@@ -3,7 +3,7 @@ DOCNUMBER = 117
 DOCNAME = $(DOCTYPE)-$(DOCNUMBER)
 
 tex = $(filter-out $(wildcard *acronyms.tex) , $(wildcard *.tex))
-section_tex = $(wildcard sections/*.tex)
+section_tex = $(wildcard sections/*.tex) $(wildcard sections/processing/*.tex)
 
 GITVERSION := $(shell git log -1 --date=short --pretty=%h)
 GITDATE := $(shell git log -1 --date=short --pretty=%ad)
