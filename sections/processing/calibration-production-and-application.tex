@@ -30,8 +30,31 @@ We describe how defect masks are generated (bad pixels/columns, saturation trail
 
 \subsection{Non-Linearity} \label{sec:processing:calibration:linearity}
 
-We describe the linearity characterization procedure and the model used to correct detector response as a function of signal level.
-We specify the valid range and how extrapolation (if any) is treated.
+* Define NL; refers to an integral non-linearity that affects how we map a measured number of counts (ADU) to number of true counts, which evolves as a function of signal level in a non-trivial way.
+* Given the calibration illumination system, we should expect a certain number of "counts", which we can compare the the amount we measure in flat fields at different levels.
+* The conversion can be impacted by temperature of the readout sensors and by time due to slow, smooth electronic shifting of bias level.
+* We do not have external measurements of the photodiode current with which to integrate and measure a baseline "truth" of flux illuminating the camera focal plane. Instead, we calibrating a set of exposure time (abscissa) vs measured flat field mean signal level (ordinate) for the set of flat fields. 
+* Context for input data (PTC data, but don't reference it by name), this will be referenced by the PTC section. Note that these data were collected in random ordering.
+* This line is discontinuous, multivalued function of exposure time since we operate the input LED at different current levels to achieve the range of count levels need to measure NL from 100 counts up to a point beyond saturation where measurement linearity fails (define linearity turnoff).
+* First, we take the set of measured points below the turnoff and separate them into a set of groups for different LED settings.
+* Require at least 2 points in each group
+* Apply optional normalization based on a vlaue calibrated from surrounding detectors. Initially we apply no normalization (just 1s).
+* Minimize this function: $\sum_{i} w_i(r_i - 1)^2$, subject to these constraints: S(0) = 0 and mean(S(\mu)) = 0.
+
+\begin{equation}
+    r_i = \frac{\mu - S(\mu) - O}{k_j * D_i}
+\end{equation}
+
+
+\begin{equation}
+    \mu \rightarrow\mu_{\text{corr}}=\mu(1 + \alpha T_i), \\
+    \mu \rightarrow\mu_{\text{corr}}=\mu(1 + \beta t_i)
+\end{equation}
+
+* We also take advantage of the fact that we have a large focal plane with many detector that are all seeing approximately a flat illumination level of light to calibrate the overall NL.
+* Distinguish between absolute and relative non-linearity, and how we calculate the normalization coefficients for both.
+* NL calibration is a model that can be interpolated to map a measured abscissa value to a true value of measured counts.
+
 
 \subsection{Deferred Charge} \label{sec:processing:calibration:cti}
 
