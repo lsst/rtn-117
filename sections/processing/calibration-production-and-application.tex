@@ -6,7 +6,7 @@ We may also include a table of the data product and the name of the associated c
 Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
 The integrative ISR pipeline for DP2 science data, including the order in which corrections are applied (Figure~\ref{fig:isr-pipeline}), is described in \S\ref{sec:isr-science}.
 
-\begin{figure}[t]
+\begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/calib-dependency.pdf}
     \caption{Calibration production dependency graph.
@@ -28,32 +28,143 @@ Describe how the crosstalk matrices are constructed.
 
 We describe how defect masks are generated (bad pixels/columns, saturation trails, and other artifacts), the thresholds used, and how masks are combined across exposures.
 
+
 \subsection{Non-Linearity} \label{sec:processing:calibration:linearity}
 
-* Define NL; refers to an integral non-linearity that affects how we map a measured number of counts (ADU) to number of true counts, which evolves as a function of signal level in a non-trivial way.
-* Given the calibration illumination system, we should expect a certain number of "counts", which we can compare the the amount we measure in flat fields at different levels.
-* The conversion can be impacted by temperature of the readout sensors and by time due to slow, smooth electronic shifting of bias level.
-* We do not have external measurements of the photodiode current with which to integrate and measure a baseline "truth" of flux illuminating the camera focal plane. Instead, we calibrating a set of exposure time (abscissa) vs measured flat field mean signal level (ordinate) for the set of flat fields. 
-* Context for input data (PTC data, but don't reference it by name), this will be referenced by the PTC section. Note that these data were collected in random ordering.
-* This line is discontinuous, multivalued function of exposure time since we operate the input LED at different current levels to achieve the range of count levels need to measure NL from 100 counts up to a point beyond saturation where measurement linearity fails (define linearity turnoff).
-* First, we take the set of measured points below the turnoff and separate them into a set of groups for different LED settings.
-* Require at least 2 points in each group
-* Apply optional normalization based on a vlaue calibrated from surrounding detectors. Initially we apply no normalization (just 1s).
-* Minimize this function: $\sum_{i} w_i(r_i - 1)^2$, subject to these constraints: S(0) = 0 and mean(S(\mu)) = 0.
+Non-linearity (NL) describes a deviation from simple proportionality when mapping amplified voltage integrated during readout to the number of analog-to-digital units (ADU) or counts.
+Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic to each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign. 
+In practice it introduces pixel-level measurement bias (up to x\% from the true signal) and invalidates Poisson counting statistics and can interfere with measurement of gain (which shouldn't change or drift with signal level).
+Correcting NL to better than y\% is therefore a prerequisite for reliable downstream calibration products and science analyses.
 
+We can measure non-linearity by measuring the response of pixel values to a change in illumination level.
+The in-dome calibration illumination system can deliver an approximately uniform flux of light across the LSSTCam focal plane.
+Given a known change in some input illumination level, we should be able predict a change in the number of counts in an image, which we can then compare to the measured change counts.
+
+We do not have independent measurements of the photodiode current produced by our calibration illumination system that we can integrate of the exposure time and use as a baseline truth of the amount of incident light while taking an exposure.
+The exposure time, which is precisely measured, makes a natural proxy for missing photodiode measurements.
+We therefore calibrate NL by fitting a relation between exposure time ($\Delta t$, abscissa) and the mean measured flat-field signal ($\mu$, ordinate).
+
+We measured $543\times2$ flat field exposures at evenly spaced illumination levels. We went as low as 100~analog-to-digital units (ADU) and continued beyond pixel saturation.
+At each illumination level, a pair of flats was acquired by varying both photodiode current and exposure time to achieve the targeted levels, measuring the mean signal level as $\mu_i = \mathrm{avg}(F_i^{(1)},F_i^{(2)})$~(in ADU).
+These data were acquired with illumination levels decided in random order to decouple signal-dependent non-linearity and time-dependent drifts in non-linearity.
+
+\begin{figure}[t]
+    \centering
+    % TODO: add exposure-time vs.\ mean-signal figure asset
+    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
+    \caption{Mean flat-field signal as a function of exposure time for a representative amplifier.
+    Discontinuities at LED current-setting boundaries partition the data into distinct illumination groups.}
+    \label{fig:linearity-exptime-vs-signal}
+\end{figure}
+
+Figure~\ref{fig:linearity-exptime-vs-signal} shows the resulting relation for a representative amplifier.
+Discontinuities appear at the boundaries between LED current settings, producing different signal levels for the same exposure time.
+These data are partitioned into groups associated with distinct LED illumination settings.
+Grouping is determined by computationally searching for jumps in the ratio of mean detector signal to exposure time or via exposure metadata.
+Within each group we allow a distinct proportionality constant $k_j$ to capture the size of the jumps.
+
+To first order, the trend between exposure time and the mean measured flat-field signal over properly scaled groups is linear and related to the intrinisc gain in each readout channel.
+We can fit a simple slope and intercept to this trend to the low signal points; the highest signal level in each channel above which this approximation break is the ``linearity turnoff" (as indicated in Figure~\ref{fig:linearity-turnoff}).
+Points above the turnoff are excluded from the NL fit because there is a maximum signal above which the measured counts can no longer be trusted due to hardware limitations at the output of the detector (Figure~\ref{fig:detector-boxes}).
+
+\begin{figure}[t]
+    \centering
+    % TODO: add linearity turnoff figure asset
+    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
+    \caption{Linearity turnoff for a representative amplifier.
+    The turnoff marks the highest signal level below which the exposure-time-to-signal relation remains approximately linear.}
+    \label{fig:linearity-turnoff}
+\end{figure}
+
+The NL model we fit to this relation is an extension of the formalism developed by \citet{astier-2019}.
+We represent the deviation from linearity by an Akima spline $S(\mu)$ of the measured mean signal $\mu$.
+
+For each exposure $i$ in group $j$ we define the residual ratio
 \begin{equation}
-    r_i = \frac{\mu - S(\mu) - O}{k_j * D_i}
+    r_i = \frac{\mu_i - S(\mu_i) - O}{k_j\, D_{i}}
+    \label{eq:spline-nl-fit}
+\end{equation}
+where $D_{i}$ is the data used for the abscissa (exposure time), $O$ is an optional constant offset that absorbs scattered light or other signal not proportional to $D_{i}$, and $w_i$ are weights.
+
+The fit minimizes a uniformly weighted ($w_i = 1$) least-squares objective over all accepted points:
+\begin{equation}
+    \chi^2 = \sum_{i} w_i \left(r_i - 1\right)^2. \label{eq:linearity-chisq}
+\end{equation}
+The fit is subject to the boundary conditions $S(0) = 0$ and $\langle S(\mu)\rangle = 0$ over the fit range.
+The first constraint fixes the origin such that zero illumination is always measured zero measured signal; the second ensures that the spline captures deviations from linearity independently from knowning the true amplifier gain.
+
+In addition, any hardware sensitities are absorbed by nuisance parameters that we parameterize as 1st order linear corrections to $\mu$ before the spline is evaluated:
+\begin{align}
+    \mu &\rightarrow \mu \left(1 + \alpha\, T_i\right), \label{eq:linearity-temp} \\
+    \mu &\rightarrow \mu \left(1 + \beta\, t_i\right), \label{eq:linearity-time}
+\end{align}
+where $T_i$ is a readout temperature (referenced to the median over the campaign), $t_i$ is the Modified Julian Date (MJD) of the midpoint of the shutter open time, and $\alpha$ and $\beta$ are fitted coefficients that describe each sensitivity.
+For LSSTCam DP2 calibration production we fit both the temperature and temporal coefficients as well as the scattered-light offset $O$ on the spline.
+
+We could perform this fit independently for every amplifier on every detector. However, most of the non-linearity is common to all amplifiers due to similar readout architectures, with only small amplifier-to-amplifier variations on top that.
+In addition, each independent fit to every amplifier would pick up not just the intrinsic non-linearity in amplifiers, but also exposure-to-exposure spatial illumination variation that occurs during the calibration campaign.
+To better characterize this, it makes since to perform a spline fit on each amplifier relative to both a single reference exposure and a reference amplifier on the same detector. 
+
+We can distinguish an \emph{absolute} non-linearity in a single reference amplifier on a detector and the \emph{relative} non-linearity of other amplifiers to that reference amplifier, the process for which is summarized in Algorithm~\ref{alg:linearity-double-spline}.
+After choosing a reference amplfier and a reference exposure, we do (1) a relative spline fit on every other amplifier using  the variation of its mean flat-field signal $\mu$ relative to the reference amplifier and to the $\mu$ in a single reference exposure, and then (2) 
+an absolute spline fit on the reference amplifier using the usual from $\mu$ versus $\Delta t$.
+Every amplifier on a detector has a shared absolute spline fit based on the reference amplifier for that detector and a relative spline fit computed relative to a reference amplifier and a reference exposure ($S_{\mathrm{rel}}(\mu) = 0$ for the reference amplifier).
+
+\begin{algorithm}[H]
+\caption{Double-spline linearity fit (single detector)}
+\label{alg:linearity-double-spline}
+\begin{algorithmic}[1]
+\For{each amplifier $a$}
+    \State $k_j \leftarrow$ \Call{Find Groups}{$\mu_a$, $\Delta t$}
+    \State \Call{Compute linearity turnoff}{$\mu_a$, $\Delta t$}
+\EndFor
+\State choose reference amplifier $\mathrm{ref}$ with the highest linearity turnoff
+\State choose reference exposure $i_0$, the flat whose mean signal $\mu_{\mathrm{ref}} = 10^4$ on amplifier $\mathrm{ref}$ is nearest the target signal level
+\For{each exposure $i$}
+    % \State compare flat $i$ to the reference exposure $i_0$
+    % \State $\mu_{\mathrm{ref},i} \leftarrow$  $\mu_{\mathrm{ref}}$ / $\mu_{\mathrm{ref}, i_0}$ % mean signal on amplifier $\mathrm{ref}$ in exposure $i$, normalized to $i_0$
+    \For{each amplifier $a \neq \mathrm{ref}$}
+        \State $D^{\mathrm{rel}}_{i} \leftarrow \mu_{\mathrm{ref}, i} \times (\mu_{a,i_0} / \mu_{\mathrm{ref}, i_0})$  (Relative Abscissa) % mean signal on amplifier $a$ in exposure $i$, normalized to $i_0$ and expressed relative to $\mu_{\mathrm{ref},i}$
+        \State $\mu^{\mathrm{rel}}_{i} \leftarrow \mu_{a,i}$ (Relative Ordinate)
+    \EndFor
+
+    \State $D^{\mathrm{abs}}_{i} \leftarrow \Delta t_i$ (exposure time)
+    \State $\mu^{\mathrm{abs}}_{i} \leftarrow \mu_{\mathrm{ref},i}$ (measured counts)
+\EndFor
+
+\Statex \Comment{Spline fit}
+\State $S_{\mathrm{abs}}(\mu), O, \alpha, \beta \leftarrow$ \Call{Minimize}{Equation~\ref{eq:linearity-chisq}, $D^{\mathrm{abs}}_{i}$, $\mu^{\mathrm{abs}}_{i}$, $k_j$}
+\State $S_{\mathrm{rel}}(\mu) \leftarrow$ \Call{Minimize}{Equation~\ref{eq:linearity-chisq}, $D^{\mathrm{rel}}_{i}$, $\mu^{\mathrm{rel}}_{i}$, $k_j$}
+\end{algorithmic}
+\end{algorithm}
+
+To determine the corrected mean signal level, we can interpolate the Akima splines to compute a correction: $\mu' = \mu - S_{\mathrm{rel}}(\mu) - S_{\mathrm{abs}}(\mu)$.
+
+If each amplifier is properly linearized around its true gain, we should observe in every exposure that the illumination level is coherent between amplifiers and detectors.
+If the linearization is miscalibrated or biased (either because exposure time is not a good proxy for the true integrated photodiode or if constraining $\langle S(\mu)\rangle = 0$ is biased), the amplifiers and detectors will show signal-dependent fractional offsets in mean signal levels in each flat similar to a mis-estimation of gain.
+
+We can check this how the linearized mean signal levels deviate from an overall linear relation over some set of detectors in a given exposure:
+For each exposure $i$, we form the linearized signal, $\mu'_i$, on the reference amplifier on every detector and compute the fractional residual:
+\begin{equation}
+    r_i = \frac{\mu'_i - m_i D_{i}}{y_i},
+\end{equation}
+where $m_i$ is the slope of a linear fit to $\mu'_i$ versus $D_{i}$.
+We take the median $\langle r \rangle_i$ over a subset of focal-plane detectors (in the center of the focal plane) in that exposure and derive a multiplicative correction
+\begin{equation}
+    N_i = \frac{1}{1 - \langle r \rangle_i},
+\end{equation} that we use to rescale the abscissa ($D_{i} \rightarrow N_i D_{i}$) and enforce that the linearization produces a coherent illumination across all detectors. 
+
+We can then re-compute the double-spline fit with the normalized abscissa on the reference amplfier. We can repeat the cycle (normalize, spline, normalize, etc.) recursively several times, each time computing the normalization as \begin{equation}
+    N_i = \frac{N_i^{\mathrm{prev}}}{1 - \langle r \rangle_i}.
 \end{equation}
 
+By including constraints from the whole focal plane, we get to take advantage of the added statistical information. 
+After one iteration, this gives us a factor of Nx improvement in precision, with added value dropping rapidly after two iterations. 
 
-\begin{equation}
-    \mu \rightarrow\mu_{\text{corr}}=\mu(1 + \alpha T_i), \\
-    \mu \rightarrow\mu_{\text{corr}}=\mu(1 + \beta t_i)
-\end{equation}
+In ISR, given an image with pixel values measured in counts ($F_{ij}$), the final spline model can be interpolated, providing a continuous map from measured counts to the corrected counts for any pixel value within the range of 0 signal to the linearity turnoff, computed as:
+$F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
 
-* We also take advantage of the fact that we have a large focal plane with many detector that are all seeing approximately a flat illumination level of light to calibrate the overall NL.
-* Distinguish between absolute and relative non-linearity, and how we calculate the normalization coefficients for both.
-* NL calibration is a model that can be interpolated to map a measured abscissa value to a true value of measured counts.
+% During science ISR, the linearizer is applied at the non-linearity correction step in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
 
 \subsection{Deferred Charge} \label{sec:processing:calibration:cti}
@@ -125,9 +236,9 @@ The photon transfer curve (PTC) characterizes how pixels respond to varying sign
 This dataset provides critical calibration information including amplifier-level read noise and gain for variance plane estimation, saturation thresholds for masking, and parameters needed to correct for non-linearity, charge transfer inefficiency (CTI), and the brighter-fatter effect.
 All of these parameters can differ at the amplifier level.
 
-The photon transfer curve used to calibrate LSSTCam for DP2 is measured from $543\times2$ flat field exposures at evenly spaced illumination levels as low as 100~analog-to-digital units (ADU) and reaching at least 10\% beyond saturation.
-At each illumination level, a pair of flats was acquired by varying both LED output and exposure time to achieve the target signal.
-We measure the covariance between pixels on the difference image of the two exposures to remove variations sourced by static, fixed-pattern artifacts.
+% The photon transfer curve used to calibrate LSSTCam for DP2 is measured from $543\times2$ flat field exposures at evenly spaced illumination levels as low as 100~analog-to-digital units (ADU) and reaching at least 10\% beyond saturation.
+% At each illumination level, a pair of flats was acquired by varying both LED output and exposure time to achieve the target signal.
+% We measure the covariance between pixels on the difference image of the two exposures to remove variations sourced by static, fixed-pattern artifacts.
 
 Let $F_1$ and $F_2$ denote the two flats at a given illumination level, and let $\mu = \mathrm{avg}(F_1,F_2)$ denote the mean signal level (in ADU) over the image and away from the detector edges.
 The covariance between a pixel $\mathbf{x}=(0,0)$ and a neighbor at pixel $\mathbf{x}'=(i,j)$ is:
