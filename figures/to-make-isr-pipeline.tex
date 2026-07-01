@@ -3,12 +3,10 @@
 \documentclass[tikz, border=4pt]{standalone}
 \usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds}
 
-\definecolor{corrfill}{HTML}{EAF2FB}
-\definecolor{corrline}{HTML}{6495ED}
-\definecolor{maskfill}{HTML}{FCEFE0}
-\definecolor{maskline}{HTML}{C77F2B}
-\definecolor{framefill}{HTML}{E5F3F0}
-\definecolor{frameline}{HTML}{2E8B79}
+\definecolor{staticfill}{HTML}{EAF2FB}
+\definecolor{staticline}{HTML}{6495ED}
+\definecolor{dynamicfill}{HTML}{FCEFE0}
+\definecolor{dynamicline}{HTML}{C77F2B}
 \definecolor{inputfill}{HTML}{FFFFFF}
 \definecolor{inputline}{HTML}{ECECEC}
 
@@ -29,11 +27,10 @@
     inner ysep=3pt,
     line width=1.0pt,  % 0.6pt
   },
-  corr/.style={base, fill=corrfill, draw=corrline},
-  mask/.style={base, fill=maskfill, draw=maskline},
-  cframe/.style={base, fill=framefill, draw=frameline},
+  static/.style={base, fill=staticfill, draw=staticline},
+  dynamic/.style={base, fill=dynamicfill, draw=dynamicline},
   input/.style={base, fill=inputfill, draw=inputline},
-  optional/.style={base, fill=corrfill, draw=corrline, dash pattern=on 3pt off 2pt},
+  optional/.style={base, fill=staticfill, draw=staticline, dash pattern=on 3pt off 2pt},
   % arr/.style={
   %   -{Stealth[length=5pt, width=4pt]},
   %   line width=0.7pt,
@@ -62,31 +59,31 @@
 \node[input] (raw) {\shortstack[c]{Raw image\\\texttt{raw}}};
 
 % Row 1 (left to right): steps 1--5
-\stepnode[corr, below=2.2em of raw]{n01}{1}{Convert\\integer\\to float};
-\stepnode[corr, right=0.7em of n01]{n02}{2}{Dither counts\\Uniform\\$[-0.5,\,0.5)$};
-\stepnode[corr, right=0.7em of n02]{n03}{3}{Serial\\overscan\\correction};
-\stepnode[mask, right=0.7em of n03]{n04}{4}{Mask\\saturated\\\& suspect pixels};
-\stepnode[corr, right=0.7em of n04]{n05}{5}{Apply gain};
+\stepnode[dynamic, below=2.2em of raw]{n01}{1}{Convert\\integer\\to float};
+\stepnode[dynamic, right=0.7em of n01]{n02}{2}{Dither counts\\Uniform\\$[-0.5,\,0.5)$};
+\stepnode[dynamic, right=0.7em of n02]{n03}{3}{Serial\\overscan\\correction};
+\stepnode[static, right=0.7em of n03]{n04}{4}{Mask\\saturated\\\& suspect pixels};
+\stepnode[static, right=0.7em of n04]{n05}{5}{Apply gain};
 
 % Row 2 (right to left): steps 6--10
-\stepnode[corr, below=2.4em of n05]{n06}{6}{Crosstalk\\correction};
-\stepnode[corr, left=0.7em of n06]{n07}{7}{Parallel\\overscan\\correction};
-\stepnode[corr, left=0.7em of n07]{n08}{8}{Non-linearity\\correction};
-\stepnode[corr, left=0.7em of n08]{n09}{9}{Deferred\\charge\\correction};
-\stepnode[mask, left=0.7em of n09]{n10}{10}{E2V\\edge-bleed\\mask};
+\stepnode[static, below=2.4em of n05]{n06}{6}{Crosstalk\\correction};
+\stepnode[dynamic, left=0.7em of n06]{n07}{7}{Parallel\\overscan\\correction};
+\stepnode[static, left=0.7em of n07]{n08}{8}{Non-linearity\\correction};
+\stepnode[static, left=0.7em of n08]{n09}{9}{Deferred\\charge\\correction};
+\stepnode[dynamic, left=0.7em of n09]{n10}{10}{E2V\\edge-bleed\\mask};
 
 % Row 3 (left to right): steps 11--15
-\stepnode[mask, below=2.4em of n10]{n11}{11}{ITL dip,\\SatSag \&\\edge-bleed masks};
-\stepnode[cframe, right=0.7em of n11]{n12}{12}{Bias correction};
-\stepnode[cframe, right=0.7em of n12]{n13}{13}{Dark correction};
-\stepnode[mask, right=0.7em of n13]{n14}{14}{Defect masking};
-\stepnode[mask, right=0.7em of n14]{n15}{15}{Widen\\saturation\\footprints};
+\stepnode[dynamic, below=2.4em of n10]{n11}{11}{ITL dip,\\SatSag \&\\edge-bleed masks};
+\stepnode[static, right=0.7em of n11]{n12}{12}{Bias correction};
+\stepnode[static, right=0.7em of n12]{n13}{13}{Dark correction};
+\stepnode[static, right=0.7em of n13]{n14}{14}{Defect masking};
+\stepnode[dynamic, right=0.7em of n14]{n15}{15}{Widen\\saturation\\footprints};
 
 % Row 4 (right to left): steps 16--20
-\stepnode[corr, below=2.4em of n15]{n16}{16}{BFE\\correction};
-\stepnode[corr, left=0.7em of n16]{n17}{17}{Variance\\plane\\estimation};
-\stepnode[cframe, left=0.7em of n17]{n18}{18}{Flat correction};
-\stepnode[mask, left=0.7em of n18]{n19}{19}{Interpolate\\masked\\pixels};
+\stepnode[static, below=2.4em of n15]{n16}{16}{BFE\\correction};
+\stepnode[static, left=0.7em of n16]{n17}{17}{Variance\\plane\\estimation};
+\stepnode[static, left=0.7em of n17]{n18}{18}{Flat correction};
+\stepnode[dynamic, left=0.7em of n18]{n19}{19}{Interpolate\\masked\\pixels};
 \stepnode[optional, left=0.7em of n19]{n20}{20}{Amplifier\\offsets\\(optional)};
 
 % Row 5 (left to right):
@@ -129,21 +126,21 @@
 % Row 5
 \draw[arr] (n20.south) -- (n21.north);
 
-% --- Legend ------------------------------------------------------------
-% \begin{scope}[
-%   swatch/.style={draw, rounded corners=1.5pt, minimum width=1.5em, minimum height=0.85em, inner sep=0pt, line width=0.6pt},
-%   lbl/.style={font=\footnotesize, anchor=west, inner sep=2pt},
-% ]
-%   \coordinate (leg) at ($(n20.south west)+(0,-2.0em)$);
-%   \node[swatch, fill=corrfill, draw=corrline, anchor=west] (s1) at (leg) {};
-%   \node[lbl, right=2pt of s1] (l1) {Signal correction};
-%   \node[swatch, fill=maskfill, draw=maskline, right=1.4em of l1] (s2) {};
-%   \node[lbl, right=2pt of s2] (l2) {Masking / flagging};
-%   \node[swatch, fill=framefill, draw=frameline, right=1.4em of l2] (s3) {};
-%   \node[lbl, right=2pt of s3] (l3) {Calibration-frame division};
-%   \node[swatch, fill=corrfill, draw=corrline, dash pattern=on 3pt off 2pt, right=1.4em of l3] (s4) {};
-%   \node[lbl, right=2pt of s4] (l4) {Optional};
-% \end{scope}
+% --- Legend (bottom right, 3 rows, right-aligned) ----------------------
+\begin{scope}[
+  swatch/.style={draw, rounded corners=1.5pt, minimum width=1.5em, minimum height=0.85em, inner sep=0pt, line width=0.6pt},
+  lbl/.style={font=\footnotesize, inner sep=2pt},
+]
+  \coordinate (legbr) at ($(n16.south east)+(0,-1.5em)$);
+  \node[lbl, anchor=north east] (l1) at (legbr) {Static (pre-computed calibration inputs)};
+  \node[swatch, fill=staticfill, draw=staticline, anchor=east, left=2pt of l1.west] (s1) {};
+  \coordinate (l2pos) at ($(l1.south east)+(0,-0.35em)$);
+  \node[lbl, anchor=north east] (l2) at (l1.east |- l2pos) {Exposure-dependent application};
+  \node[swatch, fill=dynamicfill, draw=dynamicline, anchor=east, left=2pt of l2.west] (s2) {};
+  \coordinate (l3pos) at ($(l2.south east)+(0,-0.35em)$);
+  \node[lbl, anchor=north east] (l3) at (l1.east |- l3pos) {Optional};
+  \node[swatch, fill=staticfill, draw=staticline, dash pattern=on 3pt off 2pt, anchor=east, left=2pt of l3.west] (s3) {};
+\end{scope}
 
 \end{tikzpicture}
 \end{document}
