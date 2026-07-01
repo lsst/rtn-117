@@ -9,7 +9,8 @@ Steps that undo readout-electronics effects therefore appear before steps that u
     \centering
     \includegraphics[width=0.9\textwidth]{figures/isr-pipeline.pdf}
     \caption{Outline of the Instrument Signature Removal Pipeline (ISR) applied to LSSTCam science images for DP2.
-    The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.}
+    The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.
+    Blue boxes denote signal corrections; orange boxes denote masking or flagging steps; green boxes denote calibration-frame corrections (bias, dark, and flat); white boxes mark the raw input and post-ISR output.}
     \label{fig:isr-pipeline}
 \end{figure*}
 
@@ -20,7 +21,7 @@ Each item names the correction applied, and the reason it sits at this location 
 
 \begin{enumerate}
     \item \textbf{Convert integer to float.}
-    Raw images arrive as integer arrays. This first step promotes pixel values to 64-bit floating point without changing their physical meaning.
+    Raw images arrive as integer arrays. This first step promotes pixel values to 64-bit floating point precision.
 
     \item \textbf{Dither counts.}
     A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel.
