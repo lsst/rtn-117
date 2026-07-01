@@ -59,10 +59,18 @@ Improved vignetting models, informed by larger calibration datasets and cross-ch
 
 \paragraph{Color-dependent brighter-fatter corrections}
 The brighter-fatter effect is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
-Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$]{broughton2024}.
+Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{broughton2024}.
 The electrostatic brighter-fatter model used in DP2 (\S\ref{sec:processing:calibration:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
 Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for u through i bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
 Separate calibrations are appropriate for z- and y-band light, which typically  convert far deeper into the silicon.
 Boundary-shift calibrations can be color-corrected by assuming a flat incident spectral energy distribution in each filter band and a depth-conversion model in silicon.
 These corrections were not enabled in DP2 because validation was incomplete, but they are expected for DR1.
 Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.
+
+\paragraph{Fringing}
+Fringing is an interference pattern produced when narrow-band emission reflects within the thin, back-illuminated silicon of LSSTCam CCDs.
+It is driven primarily by night-sky emission lines and becomes appreciable in the $z$ and $y$ bands, where the silicon is increasingly transmissive and OH and other atmospheric lines contribute strongly to the background.
+In-dome flat-field exposures (\S\ref{sec:processing:calibration:flats}) imprint and partially divide out a fringe pattern, but the fringing amplitude and phase in science images depend on the time-varying on-sky spectrum and therefore are not fully canceled by flat-fielding alone.
+The DP2 ISR pipeline (\S\ref{sec:isr-science}) does not include a dedicated fringe-subtraction step.
+Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.
+Fringing models developed by \citet{2023PASP..135c4503G} and corresponding corrections are under development and expected for DR1; until then, users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
