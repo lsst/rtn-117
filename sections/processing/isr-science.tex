@@ -10,7 +10,8 @@ Steps that undo readout-electronics effects therefore appear before steps that u
     \includegraphics[width=0.9\textwidth]{figures/isr-pipeline.pdf}
     \caption{Outline of the Instrument Signature Removal Pipeline (ISR) applied to LSSTCam science images for DP2.
     The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.
-    Blue boxes denote signal corrections; orange boxes denote masking or flagging steps; green boxes denote calibration-frame corrections (bias, dark, and flat); white boxes mark the raw input and post-ISR output.}
+    Blue boxes denote static ISR steps that apply pre-computed calibration inputs; orange boxes denote steps whose application depends on the science exposure itself (for example, overscan subtraction, dithering, or saturation-footprint growth); white boxes mark the raw input and post-ISR output.
+    The dashed optional step applies pre-computed per-amplifier offsets when enabled.}
     \label{fig:isr-pipeline}
 \end{figure*}
 
