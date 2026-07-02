@@ -4,18 +4,19 @@ Optionally add science context.
 
 \subsection{LSSTCam and CCD status for DP2}\label{sec:data:lsstcam}
 
-Describe the filters.
+%Describe the filters. (to move to LSSTCam section)
 
-Describe the sequencer
+%Describe the sequencer (to do in LSSTCam section)
 
-Analyzed with updated sequencer (s3v2).
+%Analyzed with updated sequencer (s3v2). (see calibration epoch section)
 
-\textcolor{red}{to do:} insert map as a percentage of used pixels: dead, bad and the dead ccd are in one color, color for CCDs worst than the median and green for best CCDs.
-Effective area: vignetted masked + defects
+%\textcolor{red}{to do:} insert map as a percentage of used pixels: dead, bad and the dead ccd are in one color, color for CCDs worst than the median and green for best CCDs.
+%Effective area: vignetted masked + defects
+
 
 \subsection{Calibration System (CalSys)}\label{sec:data:calsys}
 
-LSST uses four calibration systems to construct calibrations. Three of which (the flat-field illuminator, the collimated beam projector, and the Auxiliary telescope) will be used continuously throughout the LSST, while one calibration system (the Camera Calibration Optical Bench) was used to characterize and qualify the LSSTCam CCDs before integration to the Simonyi Survey Telescope at Rubin Observatory. 
+LSST uses four calibration systems to construct calibrations. Three of which (the flat-field illuminator, the collimated beam projector, and the Auxiliary telescope) will be used continuously throughout the LSST, while one calibration system (the Camera Calibration Optical Bench) was used to characterize and qualify the LSSTCam CCDs before integration to the Simonyi Survey Telescope at Rubin Observatory.
 
 \subsubsection{Camera Calibration Optical Bench}\label{sec:data:calsys:ccob}
 
@@ -35,9 +36,9 @@ The Vera C. Rubin Observatory's Auxiliary Telescope (AuxTel) is an independent 1
 
 To accomplish these calibration requirements, the facility relies on a dedicated instrumental payload installed at one of the telescope's Nasmyth ports. This configuration is known as the LSST Atmospheric Transmission and Slitless Spectrograph (LATISS)\textbf{Cite a LATISS paper}. In its primary mode, LATISS utilizes a transmission hologram dispersing element optimized for slitless spectrophotometry within a convergent telescope beam. The orientation of the holographic dispersing element is such that the photometry of the stars that produce spectra can be simultaneously be captured using the single $4\text{K} \times 4\text{K}$ CCD detector. This detector is identical in fabrication and performance characteristics to those integrated within the primary LSST Camera (LSSTCam). Under standard operations, projected exposure times for LATISS range from 30 to 60 seconds, depending on the target's baseline brightness, local cloud attenuation, and the specific instrument configuration.
 
-The data products generated during operation of AuxTel and LATISS fulfill a dual-purpose mandate spanning direct science calibration and system-wide operational readiness. By strategically targeting standard stars---with explicit priority given to sources cataloged within the Hubble CALSPEC and Gaia satellite data releases, the system records spectral shifts as a function of changing airmass and time to extract the true localized atmospheric transmission function. The resulting spectroscopic data products allow for the empirical decomposition and monitoring of the five primary physical constituents governing atmospheric throughput: water vapor ($H_2O$), molecular oxygen ($O_2$), ozone ($O_3$), Rayleigh scattering, and airborne aerosols\textbf{This would be a great place to add a citation, if we want to keep this brief discussion about the aerosols}. Ultimately, these measurements deliver a tailored atmospheric transmission estimation mapped directly to each distinct observation executed by the primary survey telescope. 
+The data products generated during operation of AuxTel and LATISS fulfill a dual-purpose mandate spanning direct science calibration and system-wide operational readiness. By strategically targeting standard stars—with explicit priority given to sources cataloged within the Hubble CALSPEC and Gaia satellite data releases, the system records spectral shifts as a function of changing airmass and time to extract the true localized atmospheric transmission function. The resulting spectroscopic data products allow for the empirical decomposition and monitoring of the five primary physical constituents governing atmospheric throughput: water vapor ($H_2O$), molecular oxygen ($O_2$), ozone ($O_3$), Rayleigh scattering, and airborne aerosols\textbf{This would be a great place to add a citation, if we want to keep this brief discussion about the aerosols}. Ultimately, these measurements deliver a tailored atmospheric transmission estimation mapped directly to each distinct observation executed by the primary survey telescope.
 
-Commissioning campaigns tracking over 130,000 spectra up to mid-2026 demonstrate that fully capturing local atmospheric variability does not require strict, real-time pointing coordination with the main telescope; instead, it is sufficient for AuxTel to sample standard stars within a relaxed 5-minute temporal window and a $60^{\circ}$ spatial radius of the Simonyi Survey Telescope footprint\textbf{Cite the internal AuxTel report, if necessary. Also could cut this for brevity if needed.}. 
+Commissioning campaigns tracking over 130,000 spectra up to mid-2026 demonstrate that fully capturing local atmospheric variability does not require strict, real-time pointing coordination with the main telescope; instead, it is sufficient for AuxTel to sample standard stars within a relaxed 5-minute temporal window and a $60^{\circ}$ spatial radius of the Simonyi Survey Telescope footprint\textbf{Cite the internal AuxTel report, if necessary. Also could cut this for brevity if needed.}.
 
 Beyond direct calibration products, the AuxTel facility serves as a vital real-world pathfinder test stand for the entire observatory's software environment, training personnel and exercising 24-hour operational workflows. It has been instrumental in validating the Feature-Based Scheduler for autonomous target selection, deploying Service Abstraction Layer (SAL) data acquisition scripts, and refining the LSST Operations and Visualization Environment (LOVE) interface under a continuous observing cadence. Furthermore, dedicated imaging campaigns run on AuxTel generate live data streams used to test data release production, exercise pipeline workflows, and validate the prompt processing frameworks necessary for real-time alert generation and distribution well before the main telescope goes on-sky. \textbf{Not sure if this is in scope but I will leave it here, at your discretion whether or not to prune}
 
@@ -71,7 +72,7 @@ Describe the data selection process for the DP2 dataset and calibration epoch. S
 \begin{figure*}[t]
     \centering
     \fbox{\parbox{0.75\textwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
-    % \includegraphics[width=0.8\textwidth]{figures/calibration_epoch.pdf}
+    \includegraphics[width=0.8\textwidth]{figures/calibration_epochs.png}
     \caption{}
     \label{fig:calibepoch}
 \end{figure*}
