@@ -25,8 +25,9 @@ figures/calib-dependency.pdf: figures/src/to-make-calib-dependency.tex
 figures/isr-pipeline.pdf: figures/src/to-make-isr-pipeline.tex
 	cd figures/src && pdflatex -interaction=nonstopmode -halt-on-error -jobname=isr-pipeline -output-directory=.. to-make-isr-pipeline.tex
 
-authors.tex:  authors.yaml
+authors.tex: authors.yaml
 	python3 $(TEXMFHOME)/../bin/db2authors.py -m aas7 > authors.tex
+	python3 bin/fix-authors-metadata.py authors.tex
 
 .PHONY: clean
 clean:
