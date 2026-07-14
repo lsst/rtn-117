@@ -74,3 +74,11 @@ In-dome flat-field exposures (\S\ref{sec:processing:calibration:flats}) imprint 
 The DP2 ISR pipeline (\S\ref{sec:isr-science}) does not include a dedicated fringe-subtraction step.
 Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.
 Fringing models developed by \citet{2023PASP..135c4503G} and corresponding corrections are under development and expected for DR1; until then, users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
+
+\paragraph{Masking}
+Several limitations for the defects exist for DP2:
+\begin{itemize}
+\item vampire pixels
+\item edge bleeds
+\end{itemize}
+Further developments will provide better support and masking for LSST data releases.
