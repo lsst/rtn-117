@@ -22,7 +22,66 @@ The integrative ISR pipeline for DP2 science data, including the order in which 
 \subsection{Auxiliary Data Products} \label{sec:processing:calibration:auxiliary-data-products}
 
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
-Describe how the crosstalk matrices are constructed.
+As described above (XX), large astronomical sensors are read out through multiple amplifiers in parallel, reducing the time needed to completely read the sensor.
+One downside of this design strategy is the possibility of crosstalk between the different amplifier channels.
+In LSSTCam, this crosstalk occurs due to electronic coupling between the channels in the cable connecting the detectors to the REB.
+The result of this coupling is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
+As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
+This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.
+
+With a known set of crosstalk coefficients between a given source and target amplifier, then correcting for this additional signal is easy: each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifier to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
+By repeating this for all amplifiers, we can build up a full-detector subtrahend image that can then be subtracted.
+As this correction may be imperfect, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
+This provies a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
+
+As this crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
+This naturally places the crosstalk correction early in the IsrTask processing, which is important for an additional reason.
+Very bright sources can create bleed trails that deposit charge that is not fully clocked out, and that slowly leaks out as subsequent rows are read out.
+These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifier.
+Performing crosstalk correction prior to the parallel overscan correction prevents these amplifiers from oversubtracting the affected columns.
+
+The crosstalk coefficients used during commissioning were generated in the lab at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{snyder_et_al_2021} (CZW: do we need to introduce the measurement process first?).
+These coefficients worked well, with the median values from the ITL detectors used to correct LSSTComCam while it was on sky.
+However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
+
+This measurement used three nights (CZW: check numbers in this paragraph) of spot data taken with the CBP system.
+Each exposure placed one spot on each detector, with ten linearly spaced flux levels (CZW: add figure or describe levels) per pointing.
+After the flux sequence was completed, the CBP spots where shited to land on a different amplifier, with the process repeated in order to provide each amplifier a bright source to use to look for crosstalk signals.
+A total of XX exposures were used to generate these updated crosstalk coefficients, with the number of pixels used as ``source pixels'' (CZW: which you haven't explained yet) shown in Figure~\ref{fig:crosstalk-source-pixels}.
+
+\begin{figure}[t]
+    \centering
+    % TODO: add exposure-time vs.\ mean-signal figure asset
+    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
+    \caption{Number of source pixels used to measure the crosstalk coefficients for each amplifier.
+      Note that this number drops toward the edge of the focal plane, due to difficulties properly illuminating CBP spots in these locations.}
+    \label{fig:crosstalk-source-pixels}
+\end{figure}
+
+As discussed above (CZW: ???), each of these exposures was minimally processed to correct the serial overscan, apply the gains to convert the units to electrons, and to trim and assemble the data segments.
+All pixels above a threshold of 30,000 electrons were then identified and used to construct crosstalk ratios $r_{ij} = T(\hat(x), \hat(y))_j / S(x, y)_i$, where $S(x, y)_i$ is the flux value in a pixel at $(x, y)$ in amplifier $i$, and $T(\hat(x), \hat(y))_j$ is the flux value at the same ``readout coordinate'' $(\hat(x), \hat(y))$ in amplifier $j \ne i$.
+These ratios therefore show the measured response to the source signal $S$ at the expected location of a crosstalk source at a target location $T$.
+These fluxes and ratios are accumulated for the entire set of exposures and detectors.
+Prior to any further study, the ratios are clipped to ensure contaminating features, such as stray light and reflections of other spots, are removed.
+Any pixel with a measured ratio larger than 1.0 are excluded, as these would represent an unphysical situation in which the crosstalk signal was brighter than the source signal.
+The remaining signals were XX-sigma clipped based on the inter-quartile distance, under the assumption that the ratio values are normally distributed.
+
+If the crosstalk response was perfectly linear, the average of these clipped ratios would directly yield the crosstalk coefficient between the source and target amplifiers.
+However, as shown in the lab study of the crosstalk, and demonstrated in Figure~\ref{fig:crosstalk-linear-nonlinear-fit}, such a simple model fails to fully remove the crosstalk, as the source brightness changes over the profile of the spot.
+
+\begin{figure}[t]
+    \centering
+    % TODO: add exposure-time vs.\ mean-signal figure asset
+    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
+    \caption{An example crosstalk residual on LSSTCam detector XX after correction with a linear crosstalk coefficient.
+      The oversubtraction in the core and undersubtraction in the wings of the source illustrates that the strength of the crosstalk signal is dependent on the flux of the source pixel.
+      The right panel shows the same spot, as corrected with the final non-linear crosstalk coefficients.}
+    \label{fig:crosstalk-linear-nonlinear-fit}
+\end{figure}
+
+To provide the required crosstalk coefficients that are non-linear in source flux, a linear fit was made to the measured ratios as a function of the source flux.
+The intercept of this fit then provides the term that is linear in the source flux, and the slope of the fit providing a term quadratic in the source flux.
+CZW: is this clear?
 
 \subsection{Defects} \label{sec:processing:calibration:defects}
 
@@ -423,12 +482,62 @@ This correction does not require iterative convolutions. Unlike the \citet{coult
 
 \subsection{Bias} \label{sec:processing:calibration:bias}
 
-We describe how master biases are constructed (overscan handling, trimming, combination statistic, masking) and the metrics used to monitor time stability.
+Due to (CZW: reasons), there may be small static signals that appear in all exposures, regardless of exposure time.
+To remove this remnant signal that is not already removed by the previous calibrations, a combined bias frame is subtracted from the exposure.
+This combined bias is constructed from the per-pixel clipped mean of a large number of input zero-second bias frames.
+These input bias frames have all of the corrections discussed up until this point applied.
+For LSSTCam, these combined biases have 400 input exposures, which reduces the noise in the correction.
+CZW: quick study to see if we have any with fewer than 400 exposures.
 
 \subsection{Dark} \label{sec:processing:calibration:dark}
 
-We describe how master darks are produced (scaling by exposure time, cosmic-ray rejection, hot pixel treatment) and how residual structures are assessed.
+Similar to the bias, we construct a combined dark frame from a large number of 30-second exposures, with that time chosen to match the standard exposure time of a science exposure.
+As before, all of the previous calibrations are applied to these dark frames, including the bias correction.
+These exposures have an additional cosmic ray rejection step applied after the ISR processing, as these longer exposures may have more of these features than are found on the bias frames.
+The combined dark is again created from the per-pixel clipped mean, and for LSSTCam we have a target of 400 input frames.
+CZW: I know we don't always hit that, put words here.
 
 \subsection{Flats} \label{sec:processing:calibration:flats}
 
-We describe how flat-field calibrations are created (illumination correction strategy, normalization conventions, handling fringing/stray light) and how uniformity is quantified.
+Although flat field images are a common astronomical correction, the large field of view of LSSTCam make generating this calibration a particular challenge.
+In addition to ensuring consistent illumination across this field of view, there is an added complication that the ITL and E2V detectors have different responses as a function of wavelength.
+One final complication comes from the finite choices of LEDs in the flat field illumination system decribed above.
+We anticipate that we will be able to construct higher quality synthetic flats from sequences of laser-illuminated monochromatic flats in the future, for DP2 we have chosen to construct ``anaglyph'' flats for most bands.
+
+As the name suggests, these anaglyph flats are constructed from two sets of flat field images that have each been observed with a single active LED illuminating the flat field screen.
+For the subsequent discussion, these two sets of input flat field images are referred to as the ``red'' and ``blue'' exposures, depending on the wavelength of the two LEDs within the filter bandpass that final flat field will be used for.
+These anaglyph flats have been constructed for each of the $grizy$ filters.
+This process is unavailable for the $u$ filter, as sufficiently bright far ultraviolet LEDs are not currently available, and so flats for this filter are constructed from only a single set flats (with an LED that is at the red end of the bandpass).
+
+To begin the construction of new flats, the input exposures are processed through the ISR steps of that are applied prior to flat correction, including the bias, dark, crosstalk, gain application, linearization, CTI, and overscan (CZW: reorder to be in order).
+Statistics are measured on these processed exposures, determining the median value and dispersion on each detector.
+Normalization factors are then measured for the red and blue inputs separately based on these statistics, which should account for any differences in the absolute flux received in each exposure over all detectors.
+These normalization factors are used to properly scale the inputs before they are combined using a clipped mean per pixel into separate intermediate red and blue flats.
+
+These intermediate flats include gradients related both to how well the flat field illumination and screen were oriented and due to the vignetting of the focal plane itself.
+Both types of gradients are measured next, so that contribution can be removed from the final flat.
+An initial six-node radial spline model is fit to the full binned focal plane image of the intermediate flats.
+This initial model is used to constrain both the centroid of the focal plane and the observed ratio of the ITL to E2V detectors, to account for their possibly different response.
+These parameters are then used for a 15-node radial spline model that is more careful about fitting the observed vignetting at high focal plane radii.
+This second fit uses a fixed ITL/E2V ratio measured during the first pass, to reduce the degrees of freedom in the final fit.
+An additional planar gradient is also included in this second fit, to account for simple illumination differences.
+
+The measured gradients are then removed the intermediate flats.
+The planar gradients are simply divided from the per-detector intermediate flats.
+The radial gradient is scaled by a reference gradient to reduce the effects of the vignetting, and to match the vignetting observed in on-sky data (CZW: I need to explain reference gradient better).
+A final normalization factor is applied to scale the entire flat to match the intensity level observed within the central 25mm of the focal plane.
+With these gradient-corrected intermediate flats generated, a final flat is constructed by combining the red and blue intermediates with a filter-specific mixture weight, as listed in Table \ref{tab:anaglyph_ratios}.
+
+\begin{table}[]
+  \begin{tabular}{lll}
+    Band & Blue weight & Red weight \\
+    $g$ & 0.63 & 0.37 \\
+    $r$ & 0.50 & 0.50 \\
+    $i$ & 0.476 & 0.524 \\
+    $z$ & 0.65 & 0.35 \\
+    $y$ & 0.52 & 0.48 \\
+  \end{tabular}
+  \label{tab:anaglyph_ratios}
+  \caption{Mixture weights for anaglyph flat construction.}
+\end{table}
+
