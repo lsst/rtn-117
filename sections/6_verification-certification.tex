@@ -1,0 +1,138 @@
+\section{Verification, Acceptance, and Certification} \label{sec:verify-accept-certify}
+
+Before calibrations are used for science processing, they first undergo an internal verification process to ensure they improve images that are processed with them.
+As these calibration products are used for all parts of the survey, approving updates is done via an internal review that is open to any member of the project, to ensure that all views are heard before processing uses them.
+This section details the steps used to verify, accept, and deploy calibration products for use as part of the survey.
+These steps do not preclude users from constructing and using their own set of calibrations, but they ensure that the default set of calibrations are suitable for use.
+Full details about the commands used for these steps, and suggestions for a consistent collection naming system are presented in DMTN-222 \citep{dmtn-222}.
+
+% This section defines the quality metrics for calibration products and ISR outputs.
+% Here we define the criteria used to promote products to ``accepted'' and ``certified''.
+
+\subsection{Verification} \label{sec:verify-accept-certify:verification}
+
+After new calibrations have been constructed, they are used to process some set of exposures to show that they correct the various instrument features as expected.
+For simpler calibrations, such as bias and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames, to confirm that the residuals are consistent with only the read noise remaining.
+Other calibrations require more analysis, such as applying the brighter-fatter correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
+Calibrations that do not pass some tests are not necessarily rejected outright, although those failures should be raised and considered during the acceptance process.
+This is particularly true of tests that examine a property at the amplifier segment level;  rejecting a calibration due to a small number of problematic segments is impractical.
+Where calibration construction does not produce a result that passes all of the requirements, we can add to our defect list to exclude regions that have serious issues from further processing.
+
+The current set of tests used, and the criteria used for acceptance are detailed in DMTN-101, with a brief summary listed in Table \ref{tab:verification_tests}.
+It is likely that we will expand the list of verification tests calculated for calibrations as our familiarity with the camera and data improves.
+
+\begin{table}[]
+  \begin{tabular}{llll}
+    Calibration Product & Quantity & Requirement & Description \\
+    Bias & Image mean & Consistent with 0.0 & The bias frame should have no significant signal. \\
+    & Image stdev & Consistent with the read noise & The bias frame should not contribute to the image noise. \\
+    Dark & Image stdev with CR rejection & Consistent with the read noise & The dark frame should not contribute to the image noise.  Cosmic rays should be rejected to prevent them from skewing the calculation. \\
+    CZW: & Add more examples & & \\
+  \end{tabular}
+  \label{tab:verification_tests}
+  \caption{Brief summary of verification tests.}
+\end{table}
+
+% We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
+
+\subsection{Acceptance} \label{sec:verify-accept-certify:acceptance}
+
+Once a set of calibrations has been generated and verified, a meeting of the Telescope and Auxilliary Instrumentation Calibration Acceptance Board (TAXICAB) is called to decide if those calibrations should be deployed for use.
+The TAXICAB does not have a fixed membership, and welcomes any member of the project to join to offer opinions and comments on the calibrations presented.
+The goal of this board to ensure that the decision making for calibration approval is public and accessible, with the final decisions made by consensus agreement.
+Associated with each TAXICAB meeting is a ``hailing ticket,'' which is used to provide a location for details and artifacts from the generation and verification process.
+These artifacts of the generation and verification process are presented at the TAXICAB meeting, where the attendees can decide whether or not the calibration is sufficient, and whether further tests are needed to determine if the calibration performs as expected.
+A calibration with failures of some of the verification tests is not necessarily excluded, and may be allowed for use based on the significance of the failures, with the TAXICAB making that final decision.
+
+% This section will describe the calibration acceptance process (TAXICAB).
+% Describe how verified products are compared against earlier baselines to reveal regressions or deviations, and how acceptance decisions are documented.
+
+\subsection{Certification} \label{sec:verify-accept-certify:certification}
+% Describe the final certification step in the context of the data ``butler'' and file system storage.
+During the calibration construction process, the calibrations are generally certified for a particularly validity date range.
+This date range is allowed to be open ended in either direction, but in most cases we are constructing calibrations with a known start date (for instance, the start of observing with LSSTCam) and an open end date, allowing that calibration to be used until replaced by a future calibration.
+Certification is a butler database operation that adds the individual datasets that comprise the calibration to a second CALIBRATION collection that contains these validity date ranges.
+This process allows the butler system to identify which calibration datasets should be supplied for processing raw images, with the first entry in a list of CALIBRATION collections that has a validity range that includes the observation date and time of those individual raw images.
+By constructing CHAINED collections that point to multiple CALIBRATION collections, each containing some set of calibration products and validity ranges, users can ensure that the butler will supply the correct calibrations for arbitrary input exposures without manual selection.
+As the butler searches the collection chains for the first appropriate calibration, by prepending calibration updates to the start of the chain, those updates will be found and returned before calibrations found in later collections, allowing calibrations with infinite future validity to be replaced without changing their validity date ranges.
+
+\subsection{Distribution} \label{sec:verify-accept-certify:distribution}
+Adding a new CALIBRATION collection to the main top-level CHAINED collection holding all of the calibration data for LSSTCam is done only after acceptance of the calibration products it contains by the TAXICAB.
+This is the first step of the distribution process, and allows the butler repository where the calibration was constructed to be available for use.
+However, there are multiple butler repositories that are used for production, and so the calibrations and associated metadata must be transferred to all of these locations as well.
+The CALIBRATION collections holding the data for a given TAXICAB ticket are next exported to create a calibration archive containing a copy of each file that make up the associated calibration products, with a YAML dump of the necessary butler metadata to allow this exported archive to be imported to a different repository.
+Consistent with the other data curation processes used to synchronize data between the data facilities that will process and serve Rubin data (CZW: asdfasdf, this is a bad sentence), we use the Rucio \citep{rucio} system to register and transfer the calibration files.
+Rucio is not instantaneous, and must wait until the files have been copied to the storage local to each data facility.
+Once that copy is complete, the YAML dump of the butler metadata is used to import these calibration products into the local butler repository for use.
+
+\subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
+% Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
+One additional advantage of the verification system is that it provides a way to monitor the state of the camera, and the continuing appropriateness of the calibration products.
+By running the verification tasks on new calibration exposures as they are taken, we can check how well the existing calibrations correct these new exposures.
+Although not running during the DP2 observations and analysis, this verification will be added to the processing performed at the summit, with the metrics calculated from this processing passed to the Sasquatch and Chronograf monitoring system that is used to track other performance quantities.
+This monitoring will allow the health of the camera to be tracked, and for the generation of new calibrations to be prompted by any observed changes in the metrics over time.
+
+\subsection{Data products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
+Describe the output schema, distribution process (exporting/importing, rucio, TAXICAB tracking), and user access.
+
+We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
+
+Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
+
+Be sure to mention that header metadata contains information about whether a particular ISR step was applied/not applied and which calibration dataset was used.
+
+\section{Limitations \& Known Issues} \label{sec:limitations}
+
+The ISR pipeline developed for LSSTCam removes the dominant instrumental signatures, but several effects remain partially corrected, unmodeled, or unmasked.
+The paragraphs below summarize known limitations (instrumental systematics not fully corrected, edge cases, validity constraints, etc.) for interpreting DP2 data, our recommendations for handling them in the context of DP2 science, and plans for near-term improvements expected before Data Release~1 (DR1).
+
+\paragraph{Flares}
+Some science images contain localized, bright flare-like structures.
+They appear as elongated trails that begin at a detector edge and fade with a wavlength-dependent power-law profile consistent with attenuation of light in silicon at that wavelength.
+The light is likely scattered from bright stars: focused starlight may reflect from the beveled edge of the silicon mount and enter a neighboring detector through its side, although this mechanism is not yet confirmed.
+Similar structures appear in some flat-field images as many small edge flares (referred to as a ``comb" pattern), possibly linked to the rough-cut silicon edge.
+So far, these features have been seen only in y-band, with both focused and unfocused illumination, and they are transient, consistent with a dependence on the chance alignment of bright stars with the focal-plane array.
+They are not yet fully characterized or masked in DP2 processing.
+Science users should treat anomalously bright detections/extended objects near detector edges with caution in y-band single-visit and difference images, and verify suspect sources by visual inspection.
+
+\paragraph{Residual non-linearity wiggles}
+The double-spline non-linearity model (\S\ref{sec:processing:calibration:linearity}) removes the dominant signal-dependent departure from linear response, but small quasi-oscillatory residuals remain as a function of signal level.
+They appear as low-amplitude, signal-dependent structure in linearized images.
+These ``wiggles'' are irregular, clearly observed beyond noise fluctuations, and they do not correlate with measured properties of the input flat-field images (e.g. time, temperature) or with channel on a detector or across the focal plane.
+These residuals are well below current science requirements and are left uncorrected in DP2, but further characterization is in progress.
+
+\paragraph{Differential non-linearity (DNL)}
+The DP2 linearizer corrects average amplifier non-linearity but does not yet apply a full low-signal differential non-linearity correction.
+This limitation reflects the difficulty of delivering flat-field illumination below 100 ADU/pixel with the in-dome calibration system.
+Users should exercise caution when relying on photometric or astrometric measurements at low signal levels, in particular when relying on u-band sky-background estimates from later processing steps, where backgrounds are typically at or below 100 ADU/pixel.
+Count dithering in ISR (\S\ref{sec:isr-science:overview}) provides interim mitigation until a dedicated DNL correction is measured and deployed.
+
+\paragraph{Detector vignetting models}
+Flat-field calibrations measure relative pixel and filter quantum efficiencies and throughputs under uniform illumination, but they require an accurate model of optical vignetting across the focal plane.
+Improved vignetting models, informed by larger calibration datasets and cross-checks against on-sky stellar photometry, are planned for future calibration epochs to reduce focal-plane non-uniformity.
+
+\paragraph{Color-dependent brighter-fatter corrections}
+The brighter-fatter effect is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
+Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{broughton2024}.
+The electrostatic brighter-fatter model used in DP2 (\S\ref{sec:processing:calibration:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
+Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for u through i bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
+Separate calibrations are appropriate for z- and y-band light, which typically  convert far deeper into the silicon.
+Boundary-shift calibrations can be color-corrected by assuming a flat incident spectral energy distribution in each filter band and a depth-conversion model in silicon.
+These corrections were not enabled in DP2 because validation was incomplete, but they are expected for DR1.
+Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.
+
+\paragraph{Fringing}
+Fringing is an interference pattern produced when narrow-band emission reflects within the thin, back-illuminated silicon of LSSTCam CCDs.
+It is driven primarily by night-sky emission lines and becomes appreciable in the $z$ and $y$ bands, where the silicon is increasingly transmissive and OH and other atmospheric lines contribute strongly to the background.
+In-dome flat-field exposures (\S\ref{sec:processing:calibration:flats}) imprint and partially divide out a fringe pattern, but the fringing amplitude and phase in science images depend on the time-varying on-sky spectrum and therefore are not fully canceled by flat-fielding alone.
+The DP2 ISR pipeline (\S\ref{sec:isr-science}) does not include a dedicated fringe-subtraction step.
+Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.
+Fringing models developed by \citet{2023PASP..135c4503G} and corresponding corrections are under development and expected for DR1; until then, users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
+
+\paragraph{Masking}
+Several limitations for the defects exist for DP2:
+\begin{itemize}
+\item vampire pixels
+\item edge bleeds
+\end{itemize}
+Further developments will provide better support and masking for LSST data releases.

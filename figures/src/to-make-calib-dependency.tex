@@ -1,6 +1,6 @@
 % Standalone source for calibration dependency diagram.
-% Build: cd figures && pdflatex calib-dependency.tex
-% (Or: latexmk -pdf -cd figures/calib-dependency.tex)
+% Build: make figures/calib-dependency.pdf
+% (Or: cd figures/src && pdflatex -interaction=nonstopmode -halt-on-error -jobname=calib-dependency -output-directory=.. to-make-calib-dependency.tex)
 \documentclass[tikz, border=3pt]{standalone}
 \usetikzlibrary{positioning, arrows.meta, calc, bending, shapes.geometric, fit, backgrounds}
 \tikzset{arr/.style={-{>[length=50pt, width=10pt, angle=60:5pt]}}}
