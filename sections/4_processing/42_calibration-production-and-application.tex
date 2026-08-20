@@ -1,10 +1,13 @@
 \section{Calibration Production and Application} \label{sec:calibration-production}
 % former label: sec:processing:calibration
 
+Every correction in the ISR sequence described in \S\ref{sec:isr-science} requires a calibration data product that characterizes the instrumental effect being removed, measured in advance from dedicated calibration exposures rather than from the science image itself.
+This section describes how each of these products is constructed for LSSTCam and how it is subsequently applied to science data.
+
 Each subsection will describe the calibration product, its construction algorithm, and the corresponding ISR correction task.
 We may also include a table of the data product and the name of the associated calibration task.
 Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
-The integrative ISR pipeline for DP2 science data, including the order in which corrections are applied (Figure~\ref{fig:isr-pipeline}), is described in \S\ref{sec:isr-science}.
+The integrative ISR pipeline for DP2 science data, including the order in which corrections are applied (Figure~\ref{fig:isr-pipeline}), was described in \S\ref{sec:isr-science}.
 
 \begin{figure}[t!]
     \centering
@@ -24,10 +27,11 @@ The integrative ISR pipeline for DP2 science data, including the order in which 
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 As described above (XX), large astronomical sensors are read out through multiple amplifiers in parallel, reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of crosstalk between the different amplifier channels.
-In LSSTCam, this crosstalk occurs due to electronic coupling between the channels in the cable connecting the detectors to the REB.
-The result of this coupling is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
+In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1)  between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring ASPICs. 
+The result of these couplings is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
 This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.
+These two sources cannot be disentagled from one another, so we measure and correct both forms of crosstalk as a single artifact.
 
 With a known set of crosstalk coefficients between a given source and target amplifier, then correcting for this additional signal is easy: each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifier to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
 By repeating this for all amplifiers, we can build up a full-detector subtrahend image that can then be subtracted.
@@ -40,8 +44,7 @@ Very bright sources can create bleed trails that deposit charge that is not full
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifier.
 Performing crosstalk correction prior to the parallel overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
-The crosstalk coefficients used during commissioning were generated in the lab at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
-These coefficients worked well, with the median values from the ITL detectors used to correct LSSTComCam while it was on sky.
+The crosstalk coefficients used during commissioning were calibrated from lab measurement at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
 However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
 
 This measurement used three nights (CZW: check numbers in this paragraph) of spot data taken with the CBP system.
@@ -95,7 +98,7 @@ The defects detection consist of the following steps:
     \item correct for the gradient across the focal plane, by applying a gradient correction to each amplifiers
     from the gradient measured in a binned image.
     \item a background estimate is done and removed,
-    \item hot pixels as defined as pixels with more than 5 e-/s (scaled by the exposure time) of dark current, above 1000 ADU in bias are measured,
+    \item hot pixels as defined as bright pixels with more than 5~electrons/s (scaled by the exposure time) of dark current, above 1000 ADU in bias are measured,
     \item cold pixels as defined as pixels with photoresponse less than $80\%$ of the flat mean are measured,
     \item pixels along the midline break (the interface between the top and bottom amplifiers) in E2V detectors are
     set to the median of the flats (so they are not found by the defect code),
@@ -105,7 +108,7 @@ The defects detection consist of the following steps:
 Afterwards, these measured defects are merged together, and the edges of the detectors are masked, to
 mask the so-called picture frame effect corresponding to the presence of large electric field at the edges of the CCDs.
 
-For DP2, these defects were produced by using 'bootstrap' version of the bias, dark, flat as these calibration products need the defects themselves to be defined.
+For DP2, these defects were produced by using ``bootstrap" version of the bias, dark, flat as these calibration products need the defects themselves to be defined.
 This will probably be updated in future iteration of calibration products.
 
 Additionally manual defects are large features present in LSSTCam detectors, such as the large defect in detector 0
@@ -126,13 +129,13 @@ We can measure non-linearity by measuring the response of pixel values to a chan
 The in-dome calibration illumination system can deliver an approximately uniform flux of light across the LSSTCam focal plane.
 Given a known change in some input illumination level, we should be able predict a change in the number of counts in an image, which we can then compare to the measured change counts.
 
-We do not have independent measurements of the photodiode current produced by our calibration illumination system that we can integrate of the exposure time and use as a baseline truth of the amount of incident light while taking an exposure.
-The exposure time, which is precisely measured, makes a natural proxy for missing photodiode measurements.
+We have independent measurements of the photodiode current produced by our calibration illumination system that we can integrate with the exposure time and use as a baseline truth of the amount of incident light while taking an exposure,
+however we found these measurements to be noisy and unreliable. Instead we use the exposure time, which is precisely measured and makes a natural proxy for photodiode measurements.
 We therefore calibrate NL by fitting a relation between exposure time ($\Delta t$, abscissa) and the mean measured flat-field signal ($\mu$, ordinate).
 
 We measured $543\times2$ flat field exposures at evenly spaced illumination levels. We went as low as 100~analog-to-digital units (ADU) and continued beyond pixel saturation.
-At each illumination level, a pair of flats was acquired by varying both photodiode current and exposure time to achieve the targeted levels, measuring the mean signal level as $\mu_i = \mathrm{avg}(F_i^{(1)},F_i^{(2)})$~(in ADU).
-These data were acquired with illumination levels decided in random order to decouple signal-dependent non-linearity and time-dependent drifts in non-linearity.
+At each illumination level, a pair of flats was acquired by varying both LED current and exposure time to achieve the targeted levels, measuring the mean signal level as $\mu_i = \mathrm{avg}(F_i^{(1)},F_i^{(2)})$~(in ADU).
+These data were acquired with illumination levels decided in random order to decouple signal-dependent non-linearity and time-dependent drifts in illumination.
 
 \begin{figure}[t]
     \centering
@@ -146,7 +149,7 @@ These data were acquired with illumination levels decided in random order to dec
 Figure~\ref{fig:linearity-exptime-vs-signal} shows the resulting relation for a representative amplifier.
 Discontinuities appear at the boundaries between LED current settings, producing different signal levels for the same exposure time.
 These data are partitioned into groups associated with distinct LED illumination settings.
-Grouping is determined by computationally searching for jumps in the ratio of mean detector signal to exposure time or via exposure metadata.
+Grouping is determined optionally from exposure metadata or by computationally searching for jumps in the ratio of mean detector signal to exposure time or via exposure metadata.
 Within each group we allow a distinct proportionality constant $k_j$ to capture the size of the jumps.
 
 To first order, the trend between exposure time and the mean measured flat-field signal over properly scaled groups is linear and related to the intrinisc gain in each readout channel.
@@ -179,13 +182,17 @@ The fit minimizes a uniformly weighted ($w_i = 1$) least-squares objective over 
 The fit is subject to the boundary conditions $S(0) = 0$ and $\langle S(\mu)\rangle = 0$ over the fit range.
 The first constraint fixes the origin such that zero illumination is always measured zero measured signal; the second ensures that the spline captures deviations from linearity independently from knowning the true amplifier gain.
 
-In addition, any hardware sensitities are absorbed by nuisance parameters that we parameterize as 1st order linear corrections to $\mu$ before the spline is evaluated:
-\begin{align}
-    \mu &\rightarrow \mu \left(1 + \alpha\, T_i\right), \label{eq:linearity-temp} \\
-    \mu &\rightarrow \mu \left(1 + \beta\, t_i\right), \label{eq:linearity-time}
-\end{align}
-where $T_i$ is a readout temperature (referenced to the median over the campaign), $t_i$ is the Modified Julian Date (MJD) of the midpoint of the shutter open time, and $\alpha$ and $\beta$ are fitted coefficients that describe each sensitivity.
-For LSSTCam DP2 calibration production we fit both the temperature and temporal coefficients as well as the scattered-light offset $O$ on the spline.
+In addition, any hardware sensitivities are absorbed by nuisance parameters that we parameterize as first order linear corrections to $\mu$ before the spline is evaluated:
+\begin{equation}
+\begin{aligned}
+    \mu &\rightarrow \mu \left(1 + \alpha\, T_i\right), \\
+    \mu &\rightarrow \mu \left(1 + \beta\, t_i\right),
+\end{aligned}
+\label{eq:linearity-nuisance}
+\end{equation}
+where $T_i$ is a REB temperature (referenced to the median over the campaign), $t_i$ is the Modified Julian Date (MJD) of the midpoint of the shutter open time, and $\alpha$ and $\beta$ are fitted coefficients that describe each sensitivity.
+For LSSTCam DP2 calibration production we fit only the temporal coefficients as well as the scattered-light offset $O$ on the spline.
+For DP2, we found it to be unnecessary to fit the temperature coefficient since the temperature of the REB proved to be quite stable.
 
 We could perform this fit independently for every amplifier on every detector. However, most of the non-linearity is common to all amplifiers due to similar readout architectures, with only small amplifier-to-amplifier variations on top that.
 In addition, each independent fit to every amplifier would pick up not just the intrinsic non-linearity in amplifiers, but also exposure-to-exposure spatial illumination variation that occurs during the calibration campaign.
@@ -244,8 +251,7 @@ We can then re-compute the double-spline fit with the normalized abscissa on the
     N_i = \frac{N_i^{\mathrm{prev}}}{1 - \langle r \rangle_i}.
 \end{equation}
 
-By including constraints from the whole focal plane, we get to take advantage of the added statistical information.
-After one iteration, this gives us a factor of Nx improvement in precision, with added value dropping rapidly after two iterations.
+A single iteration improves the precision of the linearity solution by a factor of \textcolor{red}{$N$}, with little further gain from additional iterations. Because the normalization is derived from the all reference amplifiers, our measurement also benefits from the added statistical power which comes from combining measurements across the focal plane to calibrate each amplifier.
 
 In ISR, given an image with pixel values measured in counts ($F_{ij}$), the final spline model can be interpolated, providing a continuous map from measured counts to the corrected counts for any pixel value within the range of 0 signal to the linearity turnoff, computed as:
 $F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
@@ -399,32 +405,32 @@ Third, the saturated pixel mask flag (denoted ``SAT'') is set for all pixels wit
 % During science ISR, PTC-derived gains, variance-plane inputs, and saturation masking are applied at the steps shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
 
-\subsection{Brighter-Fatter Effect} \label{sec:processing:calibration:bf}
+\subsection{Brighter-Fatter Effect (BFE)} \label{sec:processing:calibration:bf}
 
-The brighter-fatter (BF) effect is the first influence the detector has on an incident signal (Figure~\ref{fig:detector-boxes}).
+The brighter-fatter effect (BFE) is the first influence the detector has on an incident signal (Figure~\ref{fig:detector-boxes}).
 Accumulated electrons in a pixel repel incoming charges into neighboring pixels.
 Brighter point sources therefore appear wider in the recorded images.
 This electrostatic effect reduces to an effective change in pixel area and introduces correlations between nearby pixel values.
 The effect is intrinsic to thick CCDs and can significantly bias point-spread-function (PSF) photometry and shape measurement.
 
-The BF effect has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{2024PASP..136d5003B}.
+The BFE has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{2024PASP..136d5003B}.
 The strength of the effect is anisotropic ($a_{01}/a_{10} \sim 3$), long-ranged ($\sim 10$~px), and wavelength dependent.
 It is also about twice as strong in the E2V-family detectors as in ITL-family detectors.
 
-Several BF correction methods have been proposed and implemented in the LSST Science Pipelines \citep{2015JInst..10C5032G,2018AJ....155..258C,2023A&A...670A.118A,2024PASP..136d5003B}, and they differ widely in their underlying assumptions.
+Several BFE correction methods have been proposed and implemented in the LSST Science Pipelines \citep{2015JInst..10C5032G,2018AJ....155..258C,2023A&A...670A.118A,2024PASP..136d5003B}, and they differ widely in their underlying assumptions.
 \citet{2024PASP..136d5003B} found that modeling individual boundary shifts for every pixel (N, S, E, W) is required for adequate correction at the level needed for LSST Y10 science requirements.
 Flat-field pixel correlations can measure only the net per-pixel area change, so determining these boundary shifts requires additional electrostatic modeling.
 For processing raw images from DP2, we use the \citet{2023A&A...670A.118A} algorithm developed for Hyper Suprime-Cam, which derives from electrostatic physics and treats each pixel boundary individually.
 
 % The correction assumes three simplifying conditions.
 % First, the average charge current into a pixel is approximately constant during a long exposure, even when the PSF varies with time.
-% Second, fourth-order terms in Eq.~\ref{eq:cov_model} are negligible; at the scale of the BF effect, the corresponding coefficients are of order $10^{-24}$.
+% Second, fourth-order terms in Eq.~\ref{eq:cov_model} are negligible; at the scale of the BFE, the corresponding coefficients are of order $10^{-24}$.
 % Third, photons convert to electrons quickly after entering the detector.
-% Simulations and empirical modeling indicate that most photons in $u$ through $i$ bands convert within the top few microns of silicon, while the BF influence on charge drifting to the pixel bottom occurs primarily in the last several microns.
+% Simulations and empirical modeling indicate that most photons in $u$ through $i$ bands convert within the top few microns of silicon, while the BFE influence on charge drifting to the pixel bottom occurs primarily in the last several microns.
 % Chromatic effects are therefore likely negligible for photons with wavelengths across the LSST bandpasses.
 
 \begin{deluxetable}{ll}[t!]
-    \tablecaption{Parameter Priors for the Electrostatic Brighter-Fatter Effect (BFE) Model Fit\label{tab:bf-electrostatic-fit-priors}}
+    \tablecaption{Parameter Priors for the Electrostatic BFE Model Fit\label{tab:bf-electrostatic-fit-priors}}
     \tablehead{
         \colhead{Parameter} & \colhead{Prior}
     }
@@ -463,7 +469,7 @@ Figure~\ref{fig:ebf-kernels} shows an example pair of these kernels for amplifie
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/ebf-det94-ampC03-kVH.pdf}
-    \caption{Example brighter-fatter correction kernels $K^{V}$ (vertical) and $K^{H}$ (horizontal) derived from the electrostatic BFE model for amplifier~C03 on LSSTCam detector~94.
+    \caption{Example BFE correction kernels $K^{V}$ (vertical) and $K^{H}$ (horizontal) derived from the electrostatic BFE model for amplifier~C03 on LSSTCam detector~94.
     The diverging color scale shows the fractional charge redistributed across pixel boundaries; each kernel sums to zero to conserve charge and exhibits the antisymmetric dipole structure that moves flux from the brighter pixel to its neighbors.}
     \label{fig:ebf-kernels}
 \end{figure}
@@ -477,19 +483,24 @@ The $1/2$ prefactor accounts for the average BFE assuming a constant rate of cha
 The corrected image is assembled by removing the charge each pixel lost across its $N$/$E$ boundaries and adding what it gained from $S$/$W$ neighbors, guaranteeing charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$.
 This correction does not require iterative convolutions. Unlike the \citet{2018AJ....155..258C} algorithm used for DP1 \citep{2025rubn.rept...31N}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
 
-% During science ISR, the brighter-fatter correction is applied at the step shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
+% During science ISR, the BFE correction is applied at the step shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
 
-\subsection{Bias} \label{sec:processing:calibration:bias}
+\subsection{Combined Bias} \label{sec:processing:calibration:bias}
 
-Due to (CZW: reasons), there may be small static signals that appear in all exposures, regardless of exposure time.
+A bias image is a zero-second exposure read out with the shutter closed, and so records the electronic pedestal of the readout chain in the absence of any accumulated charge.
+Overscan correction removes the component of that pedestal that varies from exposure to exposure, while the combined bias measures the static two-dimensional electronic structure that remains and is subtracted from every science image.
+
 To remove this remnant signal that is not already removed by the previous calibrations, a combined bias frame is subtracted from the exposure.
 This combined bias is constructed from the per-pixel clipped mean of a large number of input zero-second bias frames.
 These input bias frames have all of the corrections discussed up until this point applied.
 For LSSTCam, these combined biases have 400 input exposures, which reduces the noise in the correction.
 CZW: quick study to see if we have any with fewer than 400 exposures.
 
-\subsection{Dark} \label{sec:processing:calibration:dark}
+\subsection{Combined Dark} \label{sec:processing:calibration:dark}
+
+A dark image is an exposure taken with the shutter closed, and measures the signal that accumulates in proportion to integration time rather than to incident light. It is dominated by absorbtion from thermally generated infrared photons, called dark current, together with any glow from the readout electronics.
+These artifacts are removed by scaling the dark to the exposure time of the science image and subtracting it.
 
 Similar to the bias, we construct a combined dark frame from a large number of 30-second exposures, with that time chosen to match the standard exposure time of a science exposure.
 As before, all of the previous calibrations are applied to these dark frames, including the bias correction.
@@ -497,17 +508,21 @@ These exposures have an additional cosmic ray rejection step applied after the I
 The combined dark is again created from the per-pixel clipped mean, and for LSSTCam we have a target of 400 input frames.
 CZW: I know we don't always hit that, put words here.
 
-\subsection{Flats} \label{sec:processing:calibration:flats}
+\subsection{Combined Flats} \label{sec:processing:calibration:flats}
+
+A flat field measures the relative response of the system to uniform illumination, capturing both pixel-to-pixel variations in quantum efficiency and larger-scale structure imposed by the optics, the filter transmission, and vignetting of the focal plane.
+Dividing a science exposure by the combined flat normalizes this response, so that a source of a given flux produces the same measured signal regardless of where it lands on the focal plane.
 
 Although flat field images are a common astronomical correction, the large field of view of LSSTCam make generating this calibration a particular challenge.
 In addition to ensuring consistent illumination across this field of view, there is an added complication that the ITL and E2V detectors have different responses as a function of wavelength.
 One final complication comes from the finite choices of LEDs in the flat field illumination system decribed above.
 We anticipate that we will be able to construct higher quality synthetic flats from sequences of laser-illuminated monochromatic flats in the future, for DP2 we have chosen to construct ``anaglyph'' flats for most bands.
 
-As the name suggests, these anaglyph flats are constructed from two sets of flat field images that have each been observed with a single active LED illuminating the flat field screen.
+These anaglyph flats superimpose a red-side and a blue-side flat to construct a single flat across a full LSST bandpass. For a given filter, we combine a pair of flat field images that have each been observed with a single active LED illuminating the flat field screen.
 For the subsequent discussion, these two sets of input flat field images are referred to as the ``red'' and ``blue'' exposures, depending on the wavelength of the two LEDs within the filter bandpass that final flat field will be used for.
 These anaglyph flats have been constructed for each of the $grizy$ filters.
-This process is unavailable for the $u$ filter, as sufficiently bright far ultraviolet LEDs are not currently available, and so flats for this filter are constructed from only a single set flats (with an LED that is at the red end of the bandpass).
+This process is unavailable for the $u$ filter since a sufficiently blue ultraviolet LED was not available, nor was there space to fit one inside projection system, and so flats for this filter are constructed from only a single set flats (with an LED that is at the red end of the bandpass).
+A bluer ultraviolet LED will be available to be periodically swapped in and out for DP1 calibrations.
 
 To begin the construction of new flats, the input exposures are processed through the ISR steps of that are applied prior to flat correction, including the bias, dark, crosstalk, gain application, linearization, CTI, and overscan (CZW: reorder to be in order).
 Statistics are measured on these processed exposures, determining the median value and dispersion on each detector.

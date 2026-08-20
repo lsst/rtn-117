@@ -31,7 +31,15 @@
   static/.style={base, fill=staticfill, draw=staticline},
   dynamic/.style={base, fill=dynamicfill, draw=dynamicline},
   input/.style={base, fill=inputfill, draw=inputline},
-  optional/.style={base, fill=staticfill, draw=staticline, dash pattern=on 3pt off 2pt},
+  statistic/.style={dash pattern=on 3pt off 2pt},
+  % Compact interstitial statistic box (fits in the existing inter-row gap).
+  statbox/.style={
+    text width=2.6cm,
+    minimum height=0pt,
+    inner xsep=2.5pt,
+    inner ysep=0.5pt,
+    font=\fontsize{6}{7}\selectfont,
+  },
   % arr/.style={
   %   -{Stealth[length=5pt, width=4pt]},
   %   line width=0.7pt,
@@ -60,8 +68,8 @@
 \node[input] (raw) {\shortstack[c]{Raw image\\\texttt{raw}}};
 
 % Row 1 (left to right): steps 1--5
-\stepnode[dynamic, below=2.2em of raw]{n01}{1}{Convert\\integer\\to float};
-\stepnode[dynamic, right=0.7em of n01]{n02}{2}{Dither counts\\Uniform\\$[-0.5,\,0.5)$};
+\stepnode[dynamic, statistic, below=2.2em of raw]{n01}{1}{Convert\\integer\\to float};
+\stepnode[dynamic, statistic, right=0.7em of n01]{n02}{2}{Dither counts\\Uniform\\$[-0.5,\,0.5)$};
 \stepnode[dynamic, right=0.7em of n02]{n03}{3}{Serial\\overscan\\correction};
 \stepnode[static, right=0.7em of n03]{n04}{4}{Mask\\saturated\\\& suspect pixels};
 \stepnode[static, right=0.7em of n04]{n05}{5}{Apply gain};
@@ -73,6 +81,19 @@
 \stepnode[static, left=0.7em of n08]{n09}{9}{Deferred\\charge\\correction};
 \stepnode[dynamic, left=0.7em of n09]{n10}{10}{E2V\\edge-bleed\\mask};
 
+% Inter-row statistic box: branched from serial overscan; does not change row spacing.
+\coordinate (gapmid) at ($(n03.south)!0.5!(n08.north)$);
+\coordinate (n03n04mid) at ($(n03)!0.75!(n04)$);
+\node[
+  dynamic,
+  statistic,
+  statbox,
+  minimum height=1.5em,
+  anchor=center,
+] (osstats) at (gapmid -| n03n04mid) {%
+  \shortstack[c]{Overscan statistics}%
+};
+
 % Row 3 (left to right): steps 11--15
 \stepnode[dynamic, below=2.4em of n10]{n11}{11}{ITL dip,\\SatSag \&\\edge-bleed masks};
 \stepnode[static, right=0.7em of n11]{n12}{12}{Bias correction};
@@ -82,10 +103,10 @@
 
 % Row 4 (right to left): steps 16--20
 \stepnode[static, below=2.4em of n15]{n16}{16}{BFE\\correction};
-\stepnode[static, left=0.7em of n16]{n17}{17}{Variance\\plane\\estimation};
+\stepnode[static, statistic, left=0.7em of n16]{n17}{17}{Variance\\plane\\estimation};
 \stepnode[static, left=0.7em of n17]{n18}{18}{Flat correction};
 \stepnode[dynamic, left=0.7em of n18]{n19}{19}{Interpolate\\masked\\pixels};
-\stepnode[optional, left=0.7em of n19]{n20}{20}{Amplifier\\offsets\\(optional)};
+\stepnode[static, left=0.7em of n19]{n20}{20}{Amplifier\\offsets};
 
 % Row 5 (left to right):
 \node[input, below=2.4em of n20]   (n21) {\shortstack[c]{Post-ISR image\\\texttt{post\_isr\_image}}};
@@ -98,7 +119,7 @@
     line width=0.8pt,
     rounded corners=5pt,
     inner sep=10pt,
-    fit=(n01)(n02)(n03)(n04)(n05)(n06)(n07)(n08)(n09)(n10)(n11)(n12)(n13)(n14)(n15)(n16)(n17)(n18)(n19)(n20),
+    fit=(n01)(n02)(n03)(n04)(n05)(n06)(n07)(n08)(n09)(n10)(n11)(n12)(n13)(n14)(n15)(n16)(n17)(n18)(n19)(n20)(osstats),
   ] (isrframe) {};
 \end{scope}
 \node[
@@ -112,6 +133,7 @@
 % Row 1 (L->R)
 \foreach \a/\b in {n01/n02, n02/n03, n03/n04, n04/n05}
   {\draw[arr] (\a.east) -- (\b.west);}
+\draw[arr, rounded corners=3pt] (n03.south) |- (osstats.west);
 \draw[arr] (n05.south) -- (n06.north);     % turn 1->2
 % Row 2 (R->L)
 \foreach \a/\b in {n06/n07, n07/n08, n08/n09, n09/n10}
@@ -133,14 +155,14 @@
   lbl/.style={font=\footnotesize, inner sep=2pt},
 ]
   \coordinate (legbr) at ($(n16.south east)+(0,-1.5em)$);
-  \node[lbl, anchor=north east] (l1) at (legbr) {Static (pre-computed calibration inputs)};
+  \node[lbl, anchor=north east] (l1) at (legbr) {Static (uses pre-computed calibration inputs)};
   \node[swatch, fill=staticfill, draw=staticline, anchor=east, left=2pt of l1.west] (s1) {};
   \coordinate (l2pos) at ($(l1.south east)+(0,-0.35em)$);
-  \node[lbl, anchor=north east] (l2) at (l1.east |- l2pos) {Exposure-dependent application};
+  \node[lbl, anchor=north east] (l2) at (l1.east |- l2pos) {Dynamic};
   \node[swatch, fill=dynamicfill, draw=dynamicline, anchor=east, left=2pt of l2.west] (s2) {};
   \coordinate (l3pos) at ($(l2.south east)+(0,-0.35em)$);
-  \node[lbl, anchor=north east] (l3) at (l1.east |- l3pos) {Optional};
-  \node[swatch, fill=staticfill, draw=staticline, dash pattern=on 3pt off 2pt, anchor=east, left=2pt of l3.west] (s3) {};
+  \node[lbl, anchor=north east] (l3) at (l1.east |- l3pos) {Computation};
+  \node[swatch, fill=none, draw=black, dash pattern=on 3pt off 2pt, anchor=east, left=2pt of l3.west] (s3) {};
 \end{scope}
 
 \end{tikzpicture}
