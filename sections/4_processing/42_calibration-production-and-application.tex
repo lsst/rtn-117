@@ -2,10 +2,9 @@
 % former label: sec:processing:calibration
 
 Every correction in the ISR sequence described in \S\ref{sec:isr-science} requires a calibration data product that characterizes the instrumental effect being removed, measured in advance from dedicated calibration exposures rather than from the science image itself.
-This section describes how each of these products is constructed for LSSTCam and how it is subsequently applied to science data.
 
-Each subsection will describe the calibration product, its construction algorithm, and the corresponding ISR correction task.
-We may also include a table of the data product and the name of the associated calibration task.
+In this section, we describe in detail the algorithms used to produce calibrations and apply them to an image in ISR.
+\todo{Add and describe the data table here.}
 Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
 The integrative ISR pipeline for DP2 science data, including the order in which corrections are applied (Figure~\ref{fig:isr-pipeline}), was described in \S\ref{sec:isr-science}.
 
@@ -25,24 +24,23 @@ The integrative ISR pipeline for DP2 science data, including the order in which 
 \subsection{Auxiliary Data Products} \label{sec:processing:calibration:auxiliary-data-products}
 
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
-As described above (XX), large astronomical sensors are read out through multiple amplifiers in parallel, reducing the time needed to completely read the sensor.
-One downside of this design strategy is the possibility of crosstalk between the different amplifier channels.
+Large astronomical sensors are read out through multiple amplifiers in parallel (see Section \ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
+One downside of this design strategy is the possibility of inducing crosstalk between the different amplifier channels.
 In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1)  between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring ASPICs. 
 The result of these couplings is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
 This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.
 These two sources cannot be disentagled from one another, so we measure and correct both forms of crosstalk as a single artifact.
 
-With a known set of crosstalk coefficients between a given source and target amplifier, then correcting for this additional signal is easy: each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifier to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
+Correcting for this additional signal is easy with a known set of crosstalk coefficients between a given source and target amplifier. Each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifier to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
 By repeating this for all amplifiers, we can build up a full-detector subtrahend image that can then be subtracted.
 As this correction may be imperfect, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
-This provies a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
+This provides a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
 
 As this crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
-This naturally places the crosstalk correction early in the IsrTask processing, which is important for an additional reason.
-Very bright sources can create bleed trails that deposit charge that is not fully clocked out, and that slowly leaks out as subsequent rows are read out.
+This naturally places the crosstalk correction early in the ISR processing. This is also important because very bright sources can create bleed trails that deposit charge that is not fully clocked out, and that slowly leaks out as subsequent rows are read out.
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifier.
-Performing crosstalk correction prior to the parallel overscan correction prevents these amplifiers from oversubtracting the affected columns.
+Performing crosstalk correction prior to overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
 The crosstalk coefficients used during commissioning were calibrated from lab measurement at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
 However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
@@ -82,15 +80,14 @@ However, as shown in the lab study of the crosstalk, and demonstrated in Figure~
     \label{fig:crosstalk-linear-nonlinear-fit}
 \end{figure}
 
-To provide the required crosstalk coefficients that are non-linear in source flux, a linear fit was made to the measured ratios as a function of the source flux.
-The intercept of this fit then provides the term that is linear in the source flux, and the slope of the fit providing a term quadratic in the source flux.
-CZW: is this clear?
+To provide the required crosstalk coefficients that are non-linear in source flux, we quantified the evolution of crosstalk coefficients with a linear term and a non-linear term in the fit to the flux ratios.
+The intercept of this fit provides the term that is linear in the source flux, and the slope of the fit provides a term quadratic in the source flux.
 
 \subsection{Defects} \label{sec:processing:calibration:defects}
 
 We build a \textsc{defects} calibration product based on defects manually defined and automatically detected.
 They correspond to pixels which output is not well corrected by our ISR approach.
-These Defect pixels are masked and marked as \textsc{BAD} for the downstreamed analysis and interpolated over for visual inspection.
+These defect pixels are masked and marked as \textsc{BAD} for the downstreamed analysis and interpolated over for visual inspection.
 
 The \textsc{defects} calibration product is constructed by measuring defects on bias, dark, flats and then merged together.
 The defects detection consist of the following steps:
@@ -106,9 +103,9 @@ The defects detection consist of the following steps:
 \end{itemize}
 
 Afterwards, these measured defects are merged together, and the edges of the detectors are masked, to
-mask the so-called picture frame effect corresponding to the presence of large electric field at the edges of the CCDs.
+mask what we refer to as the ``picture frame'' effect corresponding to the presence of distorted electric fields at the edges of the CCDs.
 
-For DP2, these defects were produced by using ``bootstrap" version of the bias, dark, flat as these calibration products need the defects themselves to be defined.
+For DP2, these defects were produced by using ``bootstrap'' version of the bias, dark, flat as these calibration products need the defects themselves to be defined.
 This will probably be updated in future iteration of calibration products.
 
 Additionally manual defects are large features present in LSSTCam detectors, such as the large defect in detector 0
@@ -513,9 +510,9 @@ CZW: I know we don't always hit that, put words here.
 A flat field measures the relative response of the system to uniform illumination, capturing both pixel-to-pixel variations in quantum efficiency and larger-scale structure imposed by the optics, the filter transmission, and vignetting of the focal plane.
 Dividing a science exposure by the combined flat normalizes this response, so that a source of a given flux produces the same measured signal regardless of where it lands on the focal plane.
 
-Although flat field images are a common astronomical correction, the large field of view of LSSTCam make generating this calibration a particular challenge.
-In addition to ensuring consistent illumination across this field of view, there is an added complication that the ITL and E2V detectors have different responses as a function of wavelength.
-One final complication comes from the finite choices of LEDs in the flat field illumination system decribed above.
+Although flat field images are a common astronomical correction, the large field-of-view of LSSTCam makes generating this calibration a particular challenge.
+In addition to ensuring consistent illumination across this field-of-view, there is an added complication that the ITL and E2V detectors have different responses as a function of wavelength.
+One final complication comes from the finite choices of LEDs in the flat field illumination system described in Section \ref{sec:data:calsys:flat_field_illuminator}.
 We anticipate that we will be able to construct higher quality synthetic flats from sequences of laser-illuminated monochromatic flats in the future, for DP2 we have chosen to construct ``anaglyph'' flats for most bands.
 
 These anaglyph flats superimpose a red-side and a blue-side flat to construct a single flat across a full LSST bandpass. For a given filter, we combine a pair of flat field images that have each been observed with a single active LED illuminating the flat field screen.
