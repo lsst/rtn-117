@@ -70,9 +70,14 @@ Describe the data selection process for the DP2 dataset and calibration epoch. S
 
 \begin{figure*}[t]
     \centering
-    \fbox{\parbox{0.75\textwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
-    \includegraphics[width=0.8\textwidth]{figures/calibration_epochs.png}
-    \caption{}
+    \includegraphics[trim=200bp 15bp 203bp 8bp, clip, angle=-90, width=\textwidth]{figures/calibration-epochs-timeline.pdf}
+    \caption{Timeline of the observing periods and calibration epochs for LSSTCam during commissioning and pre-survey operations included in DP2. 
+    The timeline begins on the day of LSSTCam first photon, soon after being mounted on the telescope. The first science data included in DP2 was taken on April 24th, 2025. Science data that was release as part of Data Preview 2 (DP2) is separated by calibration epochs, determined by changes to the CCD operating mode (sequencer) or power-cylces for maintenance. Colored segments denote the intervals covered by each calibration epoch: epoch~1 (from 2025 April 24)
+    sequencer with calibrated defects derived from in-lab calibrations, epoch~2 (from 2025
+    July 3, \texttt{3s\_v1}), and epoch~3 (from 2025 October 24, \texttt{3s\_v1}).
+    Calibration epoch~4 (\texttt{3s\_v2}) follows the DP2 data cutoff on 2026
+    January 6, 2026. The calibrations shown in this paper correspond to the most recent (\texttt{3s\_v2}) set of calibrations, despite the fact that no data from this period was released in DP2. 
+    Dashed segments indicate intervals not covered by a calibration epoch, including an engineering/maintenence downtime between September 21-October 24, 2025. The code freeze for v30 of the LSST DM Science Pipelines software was December 3, 2025.}
     \label{fig:calibepoch}
 \end{figure*}
 
