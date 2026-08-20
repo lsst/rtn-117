@@ -1,7 +1,11 @@
 \section{Verification, Acceptance, and Certification} \label{sec:verify-accept-certify}
 
-Before calibrations are used for science processing, they first undergo an internal verification process to ensure they improve images that are processed with them.
+Calibrations applied to survey images undergo an organized official process to verify their quality, approve them, and deploy them to the community for processing. The need for an open, controlled, and documented procedure is designed to meet the needs of the rapid data rates and survey cadence of the LSST and  the importance of calibration to all downstream science with LSST.
 As these calibration products are used for all parts of the survey, approving updates is done via an internal review that is open to any member of the project, to ensure that all views are heard before processing uses them.
+
+All data products, including calibrations, are managed by the data \texttt{butler}, an abstraction middleware layer that mediates all access to data. It contains a registry database that records the metadata and provenance of every dataset, allowing pipelines to retrieve and store data by dataset type and identifying labels rather than by file path or storage format.
+Datasets in a butler repository are organized into named collections, and it is through these collections that calibrations are associated with the exposures they apply to, made publically available, and tract over the length of the survey \citep[see][for details]{2022SPIE12189E..11J}.
+
 This section details the steps used to verify, accept, and deploy calibration products for use as part of the survey.
 These steps do not preclude users from constructing and using their own set of calibrations, but they ensure that the default set of calibrations are suitable for use.
 Full details about the commands used for these steps, and suggestions for a consistent collection naming system are presented in DMTN-222 \citep{dmtn-222}.
@@ -13,7 +17,7 @@ Full details about the commands used for these steps, and suggestions for a cons
 
 After new calibrations have been constructed, they are used to process some set of exposures to show that they correct the various instrument features as expected.
 For simpler calibrations, such as bias and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames, to confirm that the residuals are consistent with only the read noise remaining.
-Other calibrations require more analysis, such as applying the brighter-fatter correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
+Other calibrations require more analysis, such as applying the BFE correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
 Calibrations that do not pass some tests are not necessarily rejected outright, although those failures should be raised and considered during the acceptance process.
 This is particularly true of tests that examine a property at the amplifier segment level;  rejecting a calibration due to a small number of problematic segments is impractical.
 Where calibration construction does not produce a result that passes all of the requirements, we can add to our defect list to exclude regions that have serious issues from further processing.
@@ -21,17 +25,18 @@ Where calibration construction does not produce a result that passes all of the 
 The current set of tests used, and the criteria used for acceptance are detailed in DMTN-101, with a brief summary listed in Table \ref{tab:verification_tests}.
 It is likely that we will expand the list of verification tests calculated for calibrations as our familiarity with the camera and data improves.
 
-\begin{table}[]
-  \begin{tabular}{llll}
-    Calibration Product & Quantity & Requirement & Description \\
-    Bias & Image mean & Consistent with 0.0 & The bias frame should have no significant signal. \\
-    & Image stdev & Consistent with the read noise & The bias frame should not contribute to the image noise. \\
-    Dark & Image stdev with CR rejection & Consistent with the read noise & The dark frame should not contribute to the image noise.  Cosmic rays should be rejected to prevent them from skewing the calculation. \\
-    CZW: & Add more examples & & \\
-  \end{tabular}
-  \label{tab:verification_tests}
-  \caption{Brief summary of verification tests.}
-\end{table}
+\begin{deluxetable*}{llll}[t!]
+    \tablecaption{Brief summary of verification tests.\label{tab:verification_tests}}
+    \tablehead{
+        \colhead{Calibration Product} & \colhead{Quantity} & \colhead{Requirement} &
+        \colhead{Description}
+    }
+    \startdata
+        Bias & \parbox[t]{0.17\textwidth}{Image mean\strut} & \parbox[t]{0.18\textwidth}{Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{The bias frame should have no significant signal.\strut} \\
+        & \parbox[t]{0.17\textwidth}{Image stdev\strut} & \parbox[t]{0.18\textwidth}{Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{The bias frame should not contribute to the image noise.\strut} \\
+        Dark & \parbox[t]{0.17\textwidth}{Image stdev with CR rejection\strut} & \parbox[t]{0.18\textwidth}{Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{The dark frame should not contribute to the image noise. Cosmic rays should be rejected to prevent them from skewing the calculation.\strut} \\
+    \enddata
+\end{deluxetable*}
 
 % We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
 
@@ -49,21 +54,14 @@ A calibration with failures of some of the verification tests is not necessarily
 
 \subsection{Certification} \label{sec:verify-accept-certify:certification}
 % Describe the final certification step in the context of the data ``butler'' and file system storage.
-During the calibration construction process, the calibrations are generally certified for a particularly validity date range.
-This date range is allowed to be open ended in either direction, but in most cases we are constructing calibrations with a known start date (for instance, the start of observing with LSSTCam) and an open end date, allowing that calibration to be used until replaced by a future calibration.
-Certification is a butler database operation that adds the individual datasets that comprise the calibration to a second CALIBRATION collection that contains these validity date ranges.
-This process allows the butler system to identify which calibration datasets should be supplied for processing raw images, with the first entry in a list of CALIBRATION collections that has a validity range that includes the observation date and time of those individual raw images.
-By constructing CHAINED collections that point to multiple CALIBRATION collections, each containing some set of calibration products and validity ranges, users can ensure that the butler will supply the correct calibrations for arbitrary input exposures without manual selection.
-As the butler searches the collection chains for the first appropriate calibration, by prepending calibration updates to the start of the chain, those updates will be found and returned before calibrations found in later collections, allowing calibrations with infinite future validity to be replaced without changing their validity date ranges.
+
+Certification is a butler database operation that adds the datasets comprising a calibration to a CALIBRATION collection, together with the range of observation dates over which that calibration is valid.
 
 \subsection{Distribution} \label{sec:verify-accept-certify:distribution}
-Adding a new CALIBRATION collection to the main top-level CHAINED collection holding all of the calibration data for LSSTCam is done only after acceptance of the calibration products it contains by the TAXICAB.
-This is the first step of the distribution process, and allows the butler repository where the calibration was constructed to be available for use.
-However, there are multiple butler repositories that are used for production, and so the calibrations and associated metadata must be transferred to all of these locations as well.
-The CALIBRATION collections holding the data for a given TAXICAB ticket are next exported to create a calibration archive containing a copy of each file that make up the associated calibration products, with a YAML dump of the necessary butler metadata to allow this exported archive to be imported to a different repository.
-Consistent with the other data curation processes used to synchronize data between the data facilities that will process and serve Rubin data (CZW: asdfasdf, this is a bad sentence), we use the Rucio \citep{rucio} system to register and transfer the calibration files.
-Rucio is not instantaneous, and must wait until the files have been copied to the storage local to each data facility.
-Once that copy is complete, the YAML dump of the butler metadata is used to import these calibration products into the local butler repository for use.
+Distribution of LSSTCam calibrations is also a butler database operation. The certified calibration collections are gathered into a single CHAINED collection named \texttt{LSSTCam/calib}, which chains the calibrations from the successive calibration epochs along with their associated validity ranges.
+This calibration collection is synchronized across all data repositories and data facilities used for data production, including the summit facility, the SLAC Shared Scientific Data Facility (S3DF) at the United States Data Facility (USDF), the French Data Facility (FrDF) at CC-IN2P3 in Lyon, and the United Kingdom Data Facility (UKDF).
+This ensures that the same calibrations are applied to the same images regardless of where data production is run and data is served, and it ensures that the Prompt Products data pipeline, which produces the live alert stream always uses the most up-to-date calibraitons.
+Processing data with \texttt{LSSTCam/calib} therefore always applies the calibrations appropriate to each science image, without any manual selection on the part of the user.
 
 \subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
 % Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
@@ -111,10 +109,10 @@ Count dithering in ISR (\S\ref{sec:isr-science:overview}) provides interim mitig
 Flat-field calibrations measure relative pixel and filter quantum efficiencies and throughputs under uniform illumination, but they require an accurate model of optical vignetting across the focal plane.
 Improved vignetting models, informed by larger calibration datasets and cross-checks against on-sky stellar photometry, are planned for future calibration epochs to reduce focal-plane non-uniformity.
 
-\paragraph{Color-dependent brighter-fatter corrections}
-The brighter-fatter effect is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
+\paragraph{Color-dependent BFE corrections}
+The BFE is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
 Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{broughton2024}.
-The electrostatic brighter-fatter model used in DP2 (\S\ref{sec:processing:calibration:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
+The electrostatic BFE model used in DP2 (\S\ref{sec:processing:calibration:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
 Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for u through i bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
 Separate calibrations are appropriate for z- and y-band light, which typically  convert far deeper into the silicon.
 Boundary-shift calibrations can be color-corrected by assuming a flat incident spectral energy distribution in each filter band and a depth-conversion model in silicon.
