@@ -8,13 +8,13 @@ Key challenges to delivering this level of calibration include:
 \begin{enumerate}
     \item \textbf{Instrument complexity:} The LSST Camera (LSSTCam) is the largest digital camera built for astronomy.
     Its 3.2-gigapixel focal plane consists of 205 fully depleted, backside-illuminated charge-coupled devices (CCDs) from two vendors (Teledyne e2v and Imaging Technology Laboratory, hereafter E2V and ITL).
-    Detector-to-detector and amplifier-level variations require calibration and processing algorithms robust to heterogeneous sensor behavior.
-    \item \textbf{Data volume and cadence:} LSSTCam typically acquires 30~s exposures with $\leq$3~s readout, yielding about 1000 exposures per night and nightly data rates of approximately 10~TB. The need for fast, efficient processing speed is driven by Prompt Processing for the alert database and the active optics system.
+    Detector and amplifier variations require calibration and removal algorithms robust to heterogeneous sensor behavior.
+    \item \textbf{Data volume and cadence:} LSSTCam typically acquires 30~s exposures with $\leq$3~s readout, yielding about 1000 exposures per night and nightly data rates of approximately 20~TB. The need for fast, efficient processing speed is driven by the need for prompt alert production and the active optics system.
     \item \textbf{Calibration system and optics:} The calibration system (flatfield screen, LEDs, tunable laser, and the Collimated Beam Projector or CBP) must provide uniform and repeatable illumination over a large focal plane through a fast converging ($f/1.2$) optical system.
     \item \textbf{Coupled instrumental effects:} Instrument signature removal (ISR) must correct artifacts in the reverse chronological order in which they imprint in the photon transfer chain.
     Calibration derivation follows the same ordering, since characterizing a given artifact requires that all effects imprinted before it have already been calibrated and removed.
     This is further complicated by partial degeneracies among instrument artifacts, which necessitate iterative or ``bootstrapped'' approaches to converge on self-consistent calibration products.
-    \item \textbf{Evolving conditions and cadence:} Changing environmental conditions, multi-epoch calibration datasets, and evolving observing strategies require calibration production to be robust to non-uniform survey and telescope operations.
+    \item \textbf{Evolving conditions and cadence:} Changing environmental conditions, hardware and operating mode updates, and evolving observing strategies requires precise characterization of the sensors, daily tracking of ISR quality, well-defined calibration data-taking campaigns, and agreed upon triggers for new calibration epochs.
     The datasets discussed in this paper were collected before the dome was completed, before stabilization of thermal regulation systems, and before finalization of the precise detector operating mode.
     \item \textbf{Verification, provenance, and operational reproducibility:} Calibration products must be accompanied by quantitative diagnostics for rapid data quality assessment, cross-time and cross-version comparisons, and clear acceptance and certification decisions for downstream processing.
     Products must be reproducible, versioned, and continuously validated as instruments and algorithms evolve.
@@ -32,8 +32,8 @@ Our goals are to (1) make the DP2 calibration products interpretable to science 
 This paper is organized as follows.
 Section \S\ref{sec:lsstcam} introduces LSSTCam, its CCD readout architecture, and the electronic detector model that organizes calibration production and ISR.
 Section \S\ref{sec:data} describes the DP2 calibration datasets, the calibration system (CalSys), and the criteria used to select input exposures and define calibration epochs.
+Section \S\ref{sec:isr-science} describes instrument signature removal for DP2 science data and the order in which corrections are applied.
 Section \S\ref{sec:calibration-production} describes calibration product production and application, including the algorithms and data products used in DP2.
-Section \S\ref{sec:isr-science} integrates how those products compose during instrument signature removal for DP2 science data.
 Section \S\ref{sec:discussion} discusses calibration-epoch differences and residual systematics relevant to DP2.
 Section \S\ref{sec:verify-accept-certify} describes how calibration products are verified, accepted, certified, and deployed, and \S\ref{sec:limitations} summarizes known limitations for DP2.
 Section \S\ref{sec:conclusion} summarizes the DP2 calibration quality and outlines expected improvements toward Data Release~1 (DR1).
