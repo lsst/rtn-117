@@ -1,8 +1,8 @@
 \section{The LSST Camera (LSSTCam)} \label{sec:lsstcam}
 
 % Biblio
-The Vera C. Rubin Observatory's camera LSSTCam \cite{lsstcam} is the largest digital camera ever built to date.
-Its design, and the technical progress it demanded, were developed in order to meet the requirements set by the ambitious goals of LSST, as described in \cite{roodman2024lsst-9d4}.
+The Vera C. Rubin Observatory's camera LSSTCam \cite{10.71929/rubin/2571927} is the largest digital camera ever built to date.
+Its design, and the technical progress it demanded, were developed in order to meet the requirements set by the ambitious goals of LSST, as described in \cite{2024SPIE13096E..1SR}.
 We have thus created an ISR approach specifically for the analysis of LSSTCam images.
 Figure \ref{fig:beforeafterISR} shows an example of the results from our ISR pipeline on an LSSTCam exposure, showing the corrections of large effects (such as the amplifier offset or crosstalk)
 as well as more subtle effects (such as the brighter fatter effect) described in details in following sections.
@@ -64,7 +64,7 @@ Calibration and ISR tasks are organized as a pipeline based on our current model
 The calibration production tasks are run in chronological order with respect to the photon transfer and data-acquisition chain, and ISR correction tasks are applied in the opposite order to the sequence in which effects accumulate along the signal path.
 
 The algorithms and processing steps required for LSSTCam calibration and ISR were developed from measurements and analysis during electro-optical testing on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope in-dome during commissioning.
-\citet{roodman2024lsst-9d4} gives a detailed account of system characterization work and results from the laboratory campaigns.
+\citet{2024SPIE13096E..1SR} gives a detailed account of system characterization work and results from the laboratory campaigns.
 Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
 
 \begin{figure*}[t]

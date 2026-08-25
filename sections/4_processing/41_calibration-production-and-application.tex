@@ -40,7 +40,7 @@ Very bright sources can create bleed trails that deposit charge that is not full
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifier.
 Performing crosstalk correction prior to the parallel overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
-The crosstalk coefficients used during commissioning were generated in the lab at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{snyder_et_al_2021} (CZW: do we need to introduce the measurement process first?).
+The crosstalk coefficients used during commissioning were generated in the lab at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
 These coefficients worked well, with the median values from the ITL detectors used to correct LSSTComCam while it was on sky.
 However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
 
@@ -162,7 +162,7 @@ Points above the turnoff are excluded from the NL fit because there is a maximum
     \label{fig:linearity-turnoff}
 \end{figure}
 
-The NL model we fit to this relation is an extension of the formalism developed by \citet{astier-2019}.
+The NL model we fit to this relation is an extension of the formalism developed by \citet{2019A&A...629A..36A}.
 We represent the deviation from linearity by an Akima spline $S(\mu)$ of the measured mean signal $\mu$.
 
 For each exposure $i$ in group $j$ we define the residual ratio
@@ -257,7 +257,7 @@ $F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
 
 Several distinct effects in the readout chain displace charge from its pixel of origin and leave correlated structure in the serial overscan: (1) a pixel-to-pixel fractional loss during charge transfer referred to as ``global CTI'', (2) a local electronic-offset hysteresis in the output amplifier that mimics deferred charge in the first few overscan columns, and (3) localized capture and delayed release of charge by isolated trap sites in the serial register.
 Strictly, only global CTI is ``charge transfer inefficiency'' in the textbook sense, but because all three enter at the same point in the photon transfer chain (Figure~\ref{fig:detector-boxes}) and produce overlapping signatures in the serial overscan, we model them together and produce a single calibration data product that we loosely refer to as ``CTI'' in Figure~\ref{fig:calib-dependency}.
-These effects are measured, modeled, and corrected together using the extended pixel edge response (EPER) estimator developed for LSSTCam by \citet{snyder2021}.
+These effects are measured, modeled, and corrected together using the extended pixel edge response (EPER) estimator developed for LSSTCam by \citet{2021JATIS...7d48002S}.
 
 Calibrating deferred charge uses the same input data as the linearity dataset (\S\ref{sec:processing:calibration:linearity}), estimating the residual charge in electrons left in the overscan region after integrating and reading out flat field images over a wide range of signal levels.
 The global CTI is quantified by a unitless fraction, but the trap size and the electronic drift-scale all carry signal-dependent physical units, so an imperfect conversion from counts back to physical electrons biases the eventual correction.
@@ -337,7 +337,7 @@ The covariance between a pixel $\mathbf{x}=(0,0)$ and a neighbor at pixel $\math
 % Following the standard front-illuminated CCD convention, serial (row) readout proceeds along $(1,0)$ and parallel (column) readout along $(0,1)$.
 
 \paragraph{Pre-model fit}
-Preliminarily, we fit only the variance to an approximate exponential relation derived in \citet{astier-2019} (their Eq.~16).
+Preliminarily, we fit only the variance to an approximate exponential relation derived in \citet{2019A&A...629A..36A} (their Eq.~16).
 \begin{equation}
     C_{00}^{\mathrm{exp.\,approx}}(\mu) = \frac{1}{2 g^2 a_{00}}\bigl[\exp(2 a_{00} \mu g) - 1\bigr] + \frac{n_{00}}{g^2}\ .
 \end{equation}
@@ -359,7 +359,7 @@ The ``PTC turnoff'' is defined as the signal level of the last unmasked point fo
 The ``PTC rolloff'' is the signal level where $C_{00}^{\mathrm{prelim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}$ deviate by more than 1\%.
 
 \paragraph{Final model fit}
-With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{astier-2019} (their Eq.~20):
+With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{2019A&A...629A..36A} (their Eq.~20):
 \begin{equation}
     \begin{aligned}
     C_{ij}^{\mathrm{model}}(\mu) = \frac{\mu}{g} \Bigl[ \delta_{i0}\delta_{j0}
@@ -407,14 +407,14 @@ Brighter point sources therefore appear wider in the recorded images.
 This electrostatic effect reduces to an effective change in pixel area and introduces correlations between nearby pixel values.
 The effect is intrinsic to thick CCDs and can significantly bias point-spread-function (PSF) photometry and shape measurement.
 
-The BF effect has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{broughton2024}.
+The BF effect has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{2024PASP..136d5003B}.
 The strength of the effect is anisotropic ($a_{01}/a_{10} \sim 3$), long-ranged ($\sim 10$~px), and wavelength dependent.
 It is also about twice as strong in the E2V-family detectors as in ITL-family detectors.
 
-Several BF correction methods have been proposed and implemented in the LSST Science Pipelines \citep{gruen-2015,coulton-2018,astier-regnault-2023,broughton2024}, and they differ widely in their underlying assumptions.
-\citet{broughton2024} found that modeling individual boundary shifts for every pixel (N, S, E, W) is required for adequate correction at the level needed for LSST Y10 science requirements.
+Several BF correction methods have been proposed and implemented in the LSST Science Pipelines \citep{2015JInst..10C5032G,2018AJ....155..258C,2023A&A...670A.118A,2024PASP..136d5003B}, and they differ widely in their underlying assumptions.
+\citet{2024PASP..136d5003B} found that modeling individual boundary shifts for every pixel (N, S, E, W) is required for adequate correction at the level needed for LSST Y10 science requirements.
 Flat-field pixel correlations can measure only the net per-pixel area change, so determining these boundary shifts requires additional electrostatic modeling.
-For processing raw images from DP2, we use the \citet{astier-regnault-2023} algorithm developed for Hyper Suprime-Cam, which derives from electrostatic physics and treats each pixel boundary individually.
+For processing raw images from DP2, we use the \citet{2023A&A...670A.118A} algorithm developed for Hyper Suprime-Cam, which derives from electrostatic physics and treats each pixel boundary individually.
 
 % The correction assumes three simplifying conditions.
 % First, the average charge current into a pixel is approximately constant during a long exposure, even when the PSF varies with time.
@@ -437,7 +437,7 @@ For processing raw images from DP2, we use the \citet{astier-regnault-2023} algo
         Potential well vertex height,\\horizontal $z_{sh}$ ($\mu$m)    & $0 \leq z_{sh} \leq t/2$ \\
         Potential well vertex height,\\vertical $z_{sv}$ ($\mu$m)    & $0 \leq z_{sv} \leq t/2$ \\
     \enddata
-    \tablecomments{Priors on the fit parameters are informed by pixel-level simulations of the electric fields in these pixels \citep{Lage_2017}. The potential well vertices refer to the heights above the front-side of the CCD to the saddlepoints in the electric field that defines the pixel boundaries in the vertical (0, 1) and horizontal (1, 0) directions. The electrostatic model assumes that the stored charge cloud in the sensor takes the form of a flat, rectangular sheet of charge with length ($a$) and width ($b$). The inequality constraints $z_{sh} > z_q$, $z_{sv} > z_q$ are enforced during optimization, which is true in the unsaturated signal level regime.}
+    \tablecomments{Priors on the fit parameters are informed by pixel-level simulations of the electric fields in these pixels \citep{2017JInst..12C3091L}. The potential well vertices refer to the heights above the front-side of the CCD to the saddlepoints in the electric field that defines the pixel boundaries in the vertical (0, 1) and horizontal (1, 0) directions. The electrostatic model assumes that the stored charge cloud in the sensor takes the form of a flat, rectangular sheet of charge with length ($a$) and width ($b$). The inequality constraints $z_{sh} > z_q$, $z_{sv} > z_q$ are enforced during optimization, which is true in the unsaturated signal level regime.}
 \end{deluxetable}
 
 Calibration of the BFE using this algorithm takes the form of modeling a charge cloud at the bottom of a pixel, computing
@@ -457,7 +457,7 @@ The output calibration data product is the set of model parameters and a model t
 
 Applying this calibration to remove the effect during ISR uses the boundary-shift matrices $\mathbf{a}^{\mathrm{N}}$, $\mathbf{a}^{\mathrm{S}}$, $\mathbf{a}^{\mathrm{E}}$, and $\mathbf{a}^{\mathrm{W}}$ to redistribute flux accordingly.
 We tile these into two, $(2n+1)\times(2n+1)$, convolution kernels $K^{H}$ and $K^{V}$ for the horizontal and vertical shifts, respectively; we apply sign flips and edge adjustments so each matrix sums to zero.
-These matrices need not be symmetric, which is more realistic per \citet{broughton2024}.
+These matrices need not be symmetric, which is more realistic per \citet{2024PASP..136d5003B}.
 Figure~\ref{fig:ebf-kernels} shows an example pair of these kernels for amplifier~C03 on detector~94, illustrating the dipole-like, charge-conserving structure that redistributes flux across the vertical and horizontal pixel boundaries.
 
 \begin{figure}[t]
@@ -475,7 +475,7 @@ For an image $Q_{ij}$ in natural gain-corrected units of electrons, the amount o
 \end{align}
 The $1/2$ prefactor accounts for the average BFE assuming a constant rate of charge accumulation during an exposure.
 The corrected image is assembled by removing the charge each pixel lost across its $N$/$E$ boundaries and adding what it gained from $S$/$W$ neighbors, guaranteeing charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$.
-This correction does not require iterative convolutions. Unlike the \citet{coulton-2018} algorithm used for DP1 \citep{2025rubn.rept...31N}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
+This correction does not require iterative convolutions. Unlike the \citet{2018AJ....155..258C} algorithm used for DP1 \citep{RTN-095}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
 
 % During science ISR, the brighter-fatter correction is applied at the step shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
