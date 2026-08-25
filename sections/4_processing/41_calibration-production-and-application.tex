@@ -475,7 +475,7 @@ For an image $Q_{ij}$ in natural gain-corrected units of electrons, the amount o
 \end{align}
 The $1/2$ prefactor accounts for the average BFE assuming a constant rate of charge accumulation during an exposure.
 The corrected image is assembled by removing the charge each pixel lost across its $N$/$E$ boundaries and adding what it gained from $S$/$W$ neighbors, guaranteeing charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$.
-This correction does not require iterative convolutions. Unlike the \citet{2018AJ....155..258C} algorithm used for DP1 \citep{2025rubn.rept...31N}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
+This correction does not require iterative convolutions. Unlike the \citet{2018AJ....155..258C} algorithm used for DP1 \citep{RTN-095}, which requires multiple convolutions to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
 
 % During science ISR, the brighter-fatter correction is applied at the step shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
