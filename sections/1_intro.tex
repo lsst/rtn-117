@@ -1,6 +1,6 @@
 \section{Introduction} \label{sec:intro}
 
-The Vera C.\ Rubin Observatory will conduct the 10-year Legacy Survey of Space and Time (LSST, \citealt{2019ApJ...873..111I}), imaging roughly 18,000~deg$^{2}$ of the southern sky in six broadband, optical--near-infrared (NIR) filters ($ugrizy$).
+The Vera C.\ Rubin Observatory will conduct the 10-year Legacy Survey of Space and Time \citep[LSST,][]{2019ApJ...873..111I}, imaging roughly 18,000~deg$^{2}$ of the southern sky in six broadband, optical--near-infrared (NIR) filters ($ugrizy$).
 Achieving the LSST science goals requires calibrating the instrument with high precision and uniformity so that raw detector readouts can be transformed into science-ready images and catalogs.
 Errors or non-uniformities in image calibration can introduce survey-scale photometric and astrometric systematics that propagate into downstream measurements and may be degenerate with astrophysical or cosmological signals \citep{2023PASP..135k5003E}.
 
@@ -21,9 +21,9 @@ Key challenges to delivering this level of calibration include:
 \end{enumerate}
 
 The LSST Data Management Science Pipelines \citep{PSTN-019} implement this functionality using production pipelines and supporting tools to generate, verify, and publish calibration products for routine processing.
-The design benefits from lessons learned in LSST Data Preview 1 (DP1) \citep{RTN-095} and precursor surveys, including the Hyper Suprime-Cam Subaru Strategic Program \citep{2012SPIE.8446E..0ZM,2022PASJ...74..247A,2018PASJ...70S...5B} and the Dark Energy Survey \citep{2005astro.ph.10346T,2012PhPro..37.1332T,2018PASP..130g4501M}.
+The design benefits from lessons learned in LSST Data Preview 1 \citep[DP1;][]{2026AJ....171..360V} and precursor surveys, including the Hyper Suprime-Cam Subaru Strategic Program \citep{2012SPIE.8446E..0ZM,2022PASJ...74..247A,2018PASJ...70S...5B} and the Dark Energy Survey \citep{2005astro.ph.10346T,2012PhPro..37.1332T,2018PASP..130g4501M}.
 
-The first end-to-end demonstration of Rubin data processing on a substantial, internally consistent LSSTCam dataset is \emph{Data Preview 2} (DP2).
+The first end-to-end demonstration of Rubin data processing on a substantial, internally consistent LSSTCam dataset is \emph{Data Preview 2} \citep[DP2;[]{RTN-117}.
 DP2 covers about $2{,}500~\mathrm{deg}^{2}$ in all six filters and includes commissioning and pre-survey operations data.
 This paper describes the calibration-production algorithms and the operational approach used to generate DP2 calibration products.
 
