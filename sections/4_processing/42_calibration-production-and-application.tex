@@ -1,12 +1,9 @@
 \section{Calibration Production and Application} \label{sec:calibration-production}
 % former label: sec:processing:calibration
 
-Every correction in the ISR sequence described in \S\ref{sec:isr-science} requires a calibration data product that characterizes the instrumental effect being removed, measured in advance from dedicated calibration exposures rather than from the science image itself.
-
+Some artifacts removed in the ISR sequence described in \S\ref{sec:isr-science} require a calibration data product that characterizes the instrumental effect being removed, measured in advance from dedicated calibration exposures rather than from the science image itself.
 In this section, we describe in detail the algorithms used to produce calibrations and apply them to an image in ISR.
-\todo{Add and describe the data table here.}
 Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
-The integrative ISR pipeline for DP2 science data, including the order in which corrections are applied (Figure~\ref{fig:isr-pipeline}), was described in \S\ref{sec:isr-science}.
 
 \begin{figure}[t!]
     \centering
@@ -26,7 +23,7 @@ The integrative ISR pipeline for DP2 science data, including the order in which 
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section \ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of inducing crosstalk between the different amplifier channels.
-In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1)  between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring ASPICs. 
+In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring ASPICs. 
 The result of these couplings is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
 This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.

@@ -1,6 +1,6 @@
 \section{Instrument Signature Removal for DP2 Science Data} \label{sec:isr-science}
 
-Instrument Signature Removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully-calibrated image in electron units with an associated variance plane and pixel mask used in downstream data release processing tasks.
+Instrument Signature Removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully-calibrated image in electron units with an associated variance plane, pixel masks, provenance, and metadata used in downstream data release processing tasks.
 Since this process undoes instrument artifacts that enter into the image in the photon transfer chain, it is crucial for the calibration steps to match the physics of the detectors.
 
 Corrections are applied in reverse chronological order relative to the photon transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
@@ -19,14 +19,6 @@ Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as app
     The amplifier-offset step remains optional and applies pre-computed per-amplifier offsets when enabled.}
     \label{fig:isr-pipeline}
 \end{figure*}
-
-\subsection{ISR Pipeline Overview} \label{sec:isr-science:overview}
-
-The LSSTCam has a particular photon transfer chain and therefore a particular ISR correction pipeline. This pipeline takes in a set of calibrations and a raw image, and it outputs a science-ready image, with complete with a mask plane, provenance, and metadata.
-
-The output exposure's metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
-This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
-The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
 
 The following outline follows Figure~\ref{fig:isr-pipeline} step by step.
 Each item names the correction applied, and the reason it sits at this location in the processing chain.
@@ -93,7 +85,7 @@ Each item names the correction applied, and the reason it sits at this location 
     The saturation mask is expanded spatially to include pixels affected by charge spill and trails from saturated sources.
     This step follows defect masking so that all static bad regions are known before the saturation footprint is grown into neighboring pixels.
 
-    \item \textbf{BFE correction.}
+    \item \textbf{Brighter-fatter correction.}
     The electrostatic BFE (\S\ref{sec:processing:calibration:bf}) redistributes flux among neighboring pixels to undo charge-cloud repulsion in the silicon.
     In the photon transfer model (Figure~\ref{fig:detector-boxes}), the BFE is the earliest detector-level effect on incident photons, so its correction appears correspondingly late in ISR.
     It is applied after the image has been converted to linearized electron units and after additive calibration-frame corrections.
@@ -122,7 +114,11 @@ Each item names the correction applied, and the reason it sits at this location 
     Pixels in the ``SAT'', ``BAD'', and ``UNMASKEDNAN'' mask planes are filled by interpolation from neighboring unmasked values; ``SUSPECT'' pixels are flagged but not interpolated by default.
     Interpolation is performed after flat-fielding so that both the science signal and the replacement values are in the same calibrated flux units expected by algorithms that assume a continuous image (for example, background estimation and certain astrometric measurements).
 
-    \item \textbf{Amplifier offsets (optional).}
+    \item \textbf{Amplifier offsets.}
     Small per-amplifier additive adjustments derived from flat-field residuals may be applied as a final optional step to reduce residual flux discontinuities at amplifier boundaries.
     This step is optional because the PTC gain solution already includes average amplifier matching (\S\ref{sec:processing:calibration:ptc}); the offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
 \end{enumerate}
+
+The output exposure's metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
+This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
+The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
