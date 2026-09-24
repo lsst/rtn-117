@@ -11,19 +11,21 @@ The corners of the mosaic contain two CCDs for guiding and one split-wavefront C
 % CCDs
 LSSTCam CCDs are readout in 16 channels, each with their own readout electronics and amplifiers.
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
-Figure \ref{fig:amplifier} shows a diagram of the amplifier geometry and direction of electrons transport in LSSTCam CCDs.
+Figure \ref{fig:isr-before-after} shows one e2v and one ITL detector from the same exposure before and after instrument signature removal.
+The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI); see \ref{sec:processing:calibration:cti} for more details.
 %here add more about electron transportation and size of ovescan region and serial register.
-The overscan regions are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for my details.
-Figure \ref{fig:amplifier} show an example of the signal read in the overscan region for ITL and e2v amplifiers.
 
 \begin{figure*}[t]
     \centering
-    % TODO: add amplifier geometry figure asset
-    \fbox{\parbox{0.75\textwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
-    \caption{Here is an exposure in e2v amplifier and in ITL amplifier with rectangles around different regions (overscans, serial register)
-    and graphs of the signal in their overscan regions.
-    }
-    \label{fig:amplifier}
+    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a)}
+              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b)}}
+    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c)}
+              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d)}}
+    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: e2v detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
+    The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
+    The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
+    Each panel is displayed with its own grayscale z-scale stretch, and all panels share the same pixel scale, so the post-ISR images appear smaller because the overscan has been removed.}
+    \label{fig:isr-before-after}
 \end{figure*}
 
 \subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}\label{sec:processing}
