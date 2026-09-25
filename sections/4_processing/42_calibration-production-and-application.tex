@@ -1,6 +1,7 @@
 \section{Calibration Production and Application} \label{sec:calibration-production}
 % former label: sec:processing:calibration
 
+% I think word usages of calibration/calibration data product/calibration data are loose. You should clarify or homogenize the word usage.
 Every correction in the ISR sequence described in \S\ref{sec:isr-science} requires a calibration data product that characterizes the instrumental effect being removed, measured in advance from dedicated calibration exposures rather than from the science image itself.
 
 In this section, we describe in detail the algorithms used to produce calibrations and apply them to an image in ISR.
@@ -26,6 +27,7 @@ The integrative ISR pipeline for DP2 science data, including the order in which 
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section \ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of inducing crosstalk between the different amplifier channels.
+% The following paragraph is too much detail without providing any evidence and without making any change in the conclusion. You might compress the paragraph andsay measure and correct the cross talk as a single component.
 In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1)  between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring ASPICs. 
 The result of these couplings is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
@@ -37,13 +39,13 @@ By repeating this for all amplifiers, we can build up a full-detector subtrahend
 As this correction may be imperfect, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
 This provides a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
 
-As this crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
+As this crosstalk is believed to occur in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
 This naturally places the crosstalk correction early in the ISR processing. This is also important because very bright sources can create bleed trails that deposit charge that is not fully clocked out, and that slowly leaks out as subsequent rows are read out.
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifier.
 Performing crosstalk correction prior to overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
-The crosstalk coefficients used during commissioning were calibrated from lab measurement at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
-However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
+The crosstalk coefficients used during commissioning were calibrated from lab measurement at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?; YU: I think citing the refecence should be enough). 
+However, the change in the CCD clocking sequence introduced a change in the gains which change invalidated these coefficients, requiring this calibration to be remeasured.
 
 This measurement used three nights (CZW: check numbers in this paragraph) of spot data taken with the CBP system.
 Each exposure placed one spot on each detector, with ten linearly spaced flux levels (CZW: add figure or describe levels) per pointing.
@@ -102,6 +104,7 @@ The defects detection consist of the following steps:
     \item bad columns masking.
 \end{itemize}
 
+% don't you need to add the number of the width of the picture frame?
 Afterwards, these measured defects are merged together, and the edges of the detectors are masked, to
 mask what we refer to as the ``picture frame'' effect corresponding to the presence of distorted electric fields at the edges of the CCDs.
 
@@ -118,7 +121,12 @@ Additional masking is applied to an exposure in the ISR processing, as described
 \subsection{Non-Linearity} \label{sec:processing:calibration:linearity}
 
 Non-linearity (NL) describes a deviation from simple proportionality when mapping amplified voltage integrated during readout to the number of analog-to-digital units (ADU) or counts.
-Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic to each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.
+Non-linearity is signal-dependent and is often not a simple function of signal level;
+% does this talk about the signal above the rerion of interest? It is above the non-linearity turn off?
+it can change suddenly above a large signal level that is characteristic to each readout amplifier;
+% doesn't this talk about the gain change?
+and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.
+% the following sentence is the non-linearity which we care?
 In practice it introduces pixel-level measurement bias (up to x\% from the true signal) and invalidates Poisson counting statistics and can interfere with measurement of gain (which shouldn't change or drift with signal level).
 Correcting NL to better than y\% is therefore a prerequisite for reliable downstream calibration products and science analyses.
 
@@ -127,7 +135,11 @@ The in-dome calibration illumination system can deliver an approximately uniform
 Given a known change in some input illumination level, we should be able predict a change in the number of counts in an image, which we can then compare to the measured change counts.
 
 We have independent measurements of the photodiode current produced by our calibration illumination system that we can integrate with the exposure time and use as a baseline truth of the amount of incident light while taking an exposure,
-however we found these measurements to be noisy and unreliable. Instead we use the exposure time, which is precisely measured and makes a natural proxy for photodiode measurements.
+however we found these measurements to be noisy and unreliable. Instead we use the exposure time, which is
+% how precise? 
+precisely
+%
+measured and makes a natural proxy for photodiode measurements.
 We therefore calibrate NL by fitting a relation between exposure time ($\Delta t$, abscissa) and the mean measured flat-field signal ($\mu$, ordinate).
 
 We measured $543\times2$ flat field exposures at evenly spaced illumination levels. We went as low as 100~analog-to-digital units (ADU) and continued beyond pixel saturation.
@@ -189,12 +201,16 @@ In addition, any hardware sensitivities are absorbed by nuisance parameters that
 \end{equation}
 where $T_i$ is a REB temperature (referenced to the median over the campaign), $t_i$ is the Modified Julian Date (MJD) of the midpoint of the shutter open time, and $\alpha$ and $\beta$ are fitted coefficients that describe each sensitivity.
 For LSSTCam DP2 calibration production we fit only the temporal coefficients as well as the scattered-light offset $O$ on the spline.
-For DP2, we found it to be unnecessary to fit the temperature coefficient since the temperature of the REB proved to be quite stable.
+For DP2, we found it to be unnecessary to fit the temperature coefficient since the temperature of the REB proved to be
+% how stable?
+quite stable.
+%
 
 We could perform this fit independently for every amplifier on every detector. However, most of the non-linearity is common to all amplifiers due to similar readout architectures, with only small amplifier-to-amplifier variations on top that.
 In addition, each independent fit to every amplifier would pick up not just the intrinsic non-linearity in amplifiers, but also exposure-to-exposure spatial illumination variation that occurs during the calibration campaign.
 To better characterize this, it makes since to perform a spline fit on each amplifier relative to both a single reference exposure and a reference amplifier on the same detector.
 
+% I wonder if this absolute part just traces the light change, whereas the relative part traces the non-linearity but I can't judge by the materials presented here. This is probably true because you did not use the photodiode.
 We can distinguish an \emph{absolute} non-linearity in a single reference amplifier on a detector and the \emph{relative} non-linearity of other amplifiers to that reference amplifier, the process for which is summarized in Algorithm~\ref{alg:linearity-double-spline}.
 After choosing a reference amplfier and a reference exposure, we do (1) a relative spline fit on every other amplifier using  the variation of its mean flat-field signal $\mu$ relative to the reference amplifier and to the $\mu$ in a single reference exposure, and then (2)
 an absolute spline fit on the reference amplifier using the usual from $\mu$ versus $\Delta t$.
@@ -255,10 +271,15 @@ $F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
 
 % During science ISR, the linearizer is applied at the non-linearity correction step in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
+%% YU I read by here
 
 \subsection{Deferred Charge} \label{sec:processing:calibration:cti}
 
-Several distinct effects in the readout chain displace charge from its pixel of origin and leave correlated structure in the serial overscan: (1) a pixel-to-pixel fractional loss during charge transfer referred to as ``global CTI'', (2) a local electronic-offset hysteresis in the output amplifier that mimics deferred charge in the first few overscan columns, and (3) localized capture and delayed release of charge by isolated trap sites in the serial register.
+Several distinct effects in the readout chain displace charge from its pixel of origin and leave correlated structure in the serial overscan: (1) a pixel-to-pixel fractional loss during charge transfer referred to as ``global CTI'',
+% what is this effect?
+(2) a local electronic-offset hysteresis in the output amplifier that mimics deferred charge in the first few overscan columns, and
+%
+(3) localized capture and delayed release of charge by isolated trap sites in the serial register.
 Strictly, only global CTI is ``charge transfer inefficiency'' in the textbook sense, but because all three enter at the same point in the photon transfer chain (Figure~\ref{fig:detector-boxes}) and produce overlapping signatures in the serial overscan, we model them together and produce a single calibration data product that we loosely refer to as ``CTI'' in Figure~\ref{fig:calib-dependency}.
 These effects are measured, modeled, and corrected together using the extended pixel edge response (EPER) estimator developed for LSSTCam by \citet{2021JATIS...7d48002S}.
 

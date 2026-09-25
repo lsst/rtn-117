@@ -1,10 +1,15 @@
 \section{Instrument Signature Removal for DP2 Science Data} \label{sec:isr-science}
 
-Instrument Signature Removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully-calibrated image in electron units with an associated variance plane and pixel mask used in downstream data release processing tasks.
-Since this process undoes instrument artifacts that enter into the image in the photon transfer chain, it is crucial for the calibration steps to match the physics of the detectors.
+%Instrument Signature Removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully-calibrated image in electron units with an associated variance plane and pixel mask used in downstream data release processing tasks.
+%Since this process undoes instrument artifacts that enter into the image in the photon transfer chain, it is crucial for the calibration steps to match the physics of the detectors.
 
-Corrections are applied in reverse chronological order relative to the photon transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
+% focusing on defining the ISR
+Instrument Signature Removal (ISR) is the process to undo instrument signature that enters into the image in the signal transfer chain. As a result the raw integer image in ADC units gets converted into a floating-point, fully-calibrated image in electron units with an associated variance plane and pixel mask used in downstream data release processing tasks.
+
+% how you correct
+Corrections are applied in reverse chronological order relative to the signal  transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
 For example, steps that undo readout-electronics effects therefore appear before steps that undo detector-level effects and additive corrections precede multiplicative ones such as flat-fielding.
+% important note is that the things are already in electrons in general. ISR is dealing the photon conversion in photo/electro conversion. Everything is done in electron. So this part should refer signal transfer chain, rather than photon transfer chain.
 
 Running the processing pipeline with misplaced steps would either apply a correction in the wrong physical units or leave residual structure that invalidates downstream calibrations.
 Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as applied to LSSTCam science images for DP2.
@@ -13,7 +18,7 @@ Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as app
     \centering
     \includegraphics[width=0.9\textwidth]{figures/isr-pipeline.pdf}
     \caption{Outline of the Instrument Signature Removal Pipeline (ISR) applied to LSSTCam science images for DP2.
-    The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.
+    The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the signal transfer chain.
     Blue boxes denote static ISR steps that apply pre-computed calibration inputs; orange boxes denote steps whose application depends on the science exposure itself (for example, overscan subtraction, dithering, or saturation-footprint growth); white boxes mark the raw input and post-ISR output.
     A dashed border marks a computation rather than an artifact correction (integer-to-float conversion, dithering, overscan statistics, and variance plane estimation).
     The amplifier-offset step remains optional and applies pre-computed per-amplifier offsets when enabled.}
@@ -22,27 +27,38 @@ Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as app
 
 \subsection{ISR Pipeline Overview} \label{sec:isr-science:overview}
 
-The LSSTCam has a particular photon transfer chain and therefore a particular ISR correction pipeline. This pipeline takes in a set of calibrations and a raw image, and it outputs a science-ready image, with complete with a mask plane, provenance, and metadata.
+The LSSTCam has a particular signal transfer chain and therefore a particular ISR correction pipeline. This pipeline takes in a set of calibrations and a raw image, and it outputs a science-ready image, with complete with a mask plane, provenance, and metadata.
 
-The output exposure's metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
+The output exposure's metadata records
+% what is the calibration epoch?  Is it the date that the calibration data was taken? Or the validity period?
+the calibration epoch,
+%
+ the identifier of the curated
+% collection is a jargon. define in advance or avoid using it 
+collection
+%
+used, and a per-step record of which ISR corrections were applied or skipped.
 This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
 The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
 
 The following outline follows Figure~\ref{fig:isr-pipeline} step by step.
 Each item names the correction applied, and the reason it sits at this location in the processing chain.
 
+% this step-by-step is good but this breaks the rule of the paper writing which requires to define word before using them. I wonder if you put this after 42.
 \begin{enumerate}
     \item \textbf{Convert integer to float.}
     Raw images arrive as integer arrays. This first step promotes pixel values to 64-bit floating point precision.
 
     \item \textbf{Dither counts.}
     A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel.
+% introduce the word of differential non-linearity  in the ADC?
     This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.
     This step is essentially a marginalization step before a full low-signal, differential non-linearity correction can be measured and implemented.
 
     \item \textbf{Serial overscan correction.}
     An electronic, clock-injected offset plus smaller row-to-row variations are derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
     Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout. 
+% EPER has never been defined.
     At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from EPER statistics.
 
     \item \textbf{Mask saturated and suspect pixels.}
