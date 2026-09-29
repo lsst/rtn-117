@@ -6,22 +6,23 @@ Its design, and the technical progress it demanded, were developed in order to m
 % Focal plane
 The LSSTCam focal plane is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in CTN-001 \todo{CTN-001}.
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
-The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and exta-focally relative to the science CCDs. 
+The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs. 
+\todo{Add focal plane layout plot}
 
 % CCDs
-LSSTCam CCDs are readout in 16 channels, each with their own readout electronics and amplifiers.
+LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and amplifiers.
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
-Figure \ref{fig:isr-before-after} shows one e2v and one ITL detector from the same exposure before and after instrument signature removal.
-The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI); see \ref{sec:processing:calibration:cti} for more details.
+Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signal removal.
+The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for more details.
 %here add more about electron transportation and size of ovescan region and serial register.
 
 \begin{figure*}[t]
     \centering
-    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a)}
-              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b)}}
-    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c)}
-              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d)}}
-    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: e2v detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
+    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a) E2V, raw}
+              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b) E2V, post-ISR}}
+    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c) ITL, raw}
+              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d) ITL, post-ISR}}
+    \caption{One LSSTCam exposure (2026010700038) before and after instrument signal removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
     The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
     The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
     Each panel is displayed with its own grayscale z-scale stretch, and all panels share the same pixel scale, so the post-ISR images appear smaller because the overscan has been removed.}
@@ -33,8 +34,8 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
 
 Calibration and ISR tasks are organized as a pipeline based on our current model of the detector physics since instrument artifacts are removed in the reverse chronological order in which they compound along the signal chain.
 
-The calibration and instrument signature removal (ISR) therefore needs a clear picture of the signal chain, from the point of converstion of photons in the detector to the serialized digital records, as well as
-physical models of each systematic tranformation that applies to the signal in each step.
+The calibration and instrument signal removal (ISR) therefore needs a clear picture of the signal chain, from the point of conversion of photons in the detector to the serialized digital records, as well as
+physical models of each systematic transformation that applies to the signal in each step.
 
 Figure \ref{fig:detector-boxes} depicts the different steps in this chain and their physical ordering from the detector
 to the Readout Board (REB). 
@@ -48,7 +49,7 @@ Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified i
     \includegraphics{figures/calibration_boxes_detector_model.pdf}
     \caption{Photon transfer and data-acquisition model for the LSSTCam detectors and electronic readout board (REB), containing the 18-bit analog-to-digital converter (ADC) at the end of the readout chain \citep{SITCOMTN-086}.
     Instrumental effects seen in images are shown as dashed boxes; arrows indicate where each effect enters the chain.
-    Low-signal nonlinearities in LSSTCam's detector response have been observed, but their origin is not yet established; that contribution appears as a disconnected box.}
+    Low-signal non-linearities in LSSTCam's detector response have been observed, but their origin is not yet established; that contribution appears as a disconnected box.}
     \label{fig:detector-boxes}
 \end{figure*}
 

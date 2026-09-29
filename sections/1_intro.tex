@@ -1,6 +1,6 @@
 \section{Introduction} \label{sec:intro}
 
-The Vera C.\ Rubin Observatory will conduct the 10-year Legacy Survey of Space and Time (LSST, \citealt{2019ApJ...873..111I}), imaging roughly 18,000~deg$^{2}$ of the southern sky in six broadband, optical--near-infrared (NIR) filters ($ugrizy$).
+The Vera C.\ Rubin Observatory will conduct the 10-year Legacy Survey of Space and Time (LSST, \citealt{2019ApJ...873..111I}), imaging roughly $18{,}000~\mathrm{deg}^{2}$ of the southern sky in six broadband, optical--near-infrared (NIR) filters ($ugrizy$).
 Achieving the LSST science goals requires calibrating the instrument with high precision and uniformity so that raw detector readouts can be transformed into science-ready images and catalogs.
 Errors or non-uniformities in image calibration can introduce survey-scale photometric and astrometric systematics that propagate into downstream measurements and may be degenerate with astrophysical or cosmological signals \citep{2023PASP..135k5003E}.
 
@@ -8,10 +8,11 @@ Key challenges to delivering this level of calibration include:
 \begin{enumerate}
     \item \textbf{Instrument complexity:} The LSST Camera (LSSTCam) is the largest digital camera built for astronomy.
     Its 3.2-gigapixel focal plane consists of 205 fully depleted, backside-illuminated charge-coupled devices (CCDs) from two vendors (Teledyne e2v and Imaging Technology Laboratory, hereafter E2V and ITL).
+    % TODO(number): 205 CCDs here vs. 189 science CCDs plus 3 corner CCDs x 4 corners = 201 in \S\ref{sec:lsstcam}; also, 3.2 Gpix matches the 189 science CCDs (189 x 4096^2 ~ 3.2 Gpix), not 205.
     Detector and amplifier variations require calibration and removal algorithms robust to heterogeneous sensor behavior.
     \item \textbf{Data volume and cadence:} LSSTCam typically acquires 30~s exposures with 3~s readout, yielding about 1000 exposures per night and nightly data rates of approximately 20~TB. The need for fast, efficient processing speed is driven by the need for prompt alert production and the active optics system.
-    \item \textbf{Calibration system and optics:} The flat calibration system (flatfield screen, LEDs, tunable laser) needs to provide uniform and stable illumination over the large focal plane, and the Collimated Beam Projector (CBP) needs to provide a capability to measure total system throughput at any given location of the focal plane in a fast converging ($f/1.2$) optical system.
-    \item \textbf{Coupled instrumental effects:} Instrument signature removal (ISR) must correct artifacts in the reverse chronological order in which they imprint in the photon transfer chain.
+    \item \textbf{Calibration system and optics:} The flat-field illuminator (flat-field screen, LEDs, tunable laser) needs to provide uniform and stable illumination over the large focal plane, and the Collimated Beam Projector (CBP) needs to provide a capability to measure total system throughput at any given location of the focal plane in a fast converging ($f/1.2$) optical system.
+    \item \textbf{Coupled instrumental effects:} Instrument signal removal (ISR) must correct artifacts in the reverse chronological order in which they imprint in the photon transfer chain.
     Calibration derivation follows the same ordering, since characterizing a given artifact requires that all effects imprinted before it have already been calibrated and removed.
     This is further complicated by partial degeneracies among instrument artifacts, which necessitate iterative or ``bootstrapped'' approaches to converge on self-consistent calibration products.
     \item \textbf{Evolving conditions and cadence:} Changing environmental conditions, hardware and operation mode updates, and evolving observing strategies requires detailed daily tracking of calibration quality and well-defined conditions for determining new calibration epochs across all sensors.
@@ -19,7 +20,7 @@ Key challenges to delivering this level of calibration include:
     Products must be reproducible, versioned, and continuously validated as instruments and algorithms evolve.
 \end{enumerate}
 
-The LSST Data Management Science Pipelines \citep{2025rubn.rept...32N} implement this functionality using production pipelines and supporting tools to generate, verify, and publish calibration products for routine processing.
+The LSST Data Management (DM) Science Pipelines \citep{2025rubn.rept...32N} implement this functionality using production pipelines and supporting tools to generate, verify, and publish calibration products for routine processing.
 The design benefits from lessons learned in LSST Data Preview 1 (DP1) \citep{2025rubn.rept...31N} and precursor surveys, including the Hyper Suprime-Cam Subaru Strategic Program \citep{2012SPIE.8446E..0ZM,2022PASJ...74..247A,2018PASJ...70S...5B} and the Dark Energy Survey \citep{2005astro.ph.10346T,2012PhPro..37.1332T,2018PASP..130g4501M}.
 
 The first end-to-end demonstration of Rubin data processing on a substantial, internally consistent LSSTCam dataset is \emph{Data Preview 2} (DP2).
@@ -31,7 +32,7 @@ Our goals are to (1) make the DP2 calibration products interpretable to science 
 This paper is organized as follows.
 Section \S\ref{sec:lsstcam} introduces LSSTCam, its CCD readout architecture, and the electronic detector model that organizes calibration production and ISR.
 Section \S\ref{sec:data} describes the DP2 calibration datasets, the calibration system (CalSys), and the criteria used to select input exposures and define calibration epochs.
-Section \S\ref{sec:isr-science} describes how those products compose during instrument signature removal for DP2 science data.
+Section \S\ref{sec:isr-science} describes how those products compose during instrument signal removal for DP2 science data.
 Section \S\ref{sec:calibration-production} describes calibration product production and application, including the algorithms and data products used in DP2.
 Section \S\ref{sec:discussion} discusses calibration-epoch differences and residual systematics relevant to DP2.
 Section \S\ref{sec:verify-accept-certify} describes how calibration products are verified, accepted, certified, and deployed, and \S\ref{sec:limitations} summarizes known limitations for DP2.
