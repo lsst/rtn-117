@@ -1,9 +1,9 @@
 \section{Conclusion} \label{sec:conclusion}
 
-This paper documents the calibration-production algorithms, instrument signature removal (ISR) workflow, and quality-assurance framework used to generate DP2 calibration products for LSSTCam.
-DP2 is the first end-to-end demonstration of data processing with on-sky LSSTCam dataset, and it establishes a reproducible reference for the first stage of processing in Data Release Processing (DRP) pipeline.
+This paper documents the calibration-production algorithms, instrument signal removal (ISR) workflow, and quality-assurance framework used to generate DP2 calibration products for LSSTCam.
+DP2 is the first end-to-end demonstration of data processing with an on-sky LSSTCam dataset, and it establishes a reproducible reference for the first stage of processing in Data Release Processing (DRP) pipeline.
 
-We organize calibration production and ISR around the electronic detector model introduced in \S\ref{sec:lsstcam:detector-model}, where each instrument artifact get its own associated calibration dataset and correction algorithm. Calibrations are built on top of other calibrations (summarized in Figure~\ref{fig:calib-dependency}), requiring intermidate applications of ISR (summarized in Figure~\ref{fig:isr-pipeline}) .
+We organize calibration production and ISR around the electronic detector model introduced in \S\ref{sec:lsstcam:detector-model}, where each instrument artifact gets its own associated calibration dataset and correction algorithm. Calibrations are built on top of other calibrations (summarized in Figure~\ref{fig:calib-dependency}), requiring intermediate applications of ISR (summarized in Figure~\ref{fig:isr-pipeline}).
 In general, the pipelines are derived and applied in the reverse chronological order of the photon transfer chain.
 For DP2, we present the science ISR pipeline (Figure~\ref{fig:isr-pipeline}, \S\ref{sec:isr-science}) and the production algorithms for crosstalk, defect masking, non-linearity, deferred charge (CTI), the photon transfer curve (PTC), the BFE, and the classical bias, dark, and flat-field calibrations (\S\ref{sec:calibration-production}).
 

@@ -4,7 +4,7 @@ Calibrations applied to survey images undergo an organized official process to v
 As these calibration products are used for all parts of the survey, approving updates is done via an internal review that is open to any member of the project, to ensure that all views are heard before processing uses them.
 
 All data products, including calibrations, are managed by the data \texttt{butler}, an abstraction middleware layer that mediates all access to data. It contains a registry database that records the metadata and provenance of every dataset, allowing pipelines to retrieve and store data by dataset type and identifying labels rather than by file path or storage format.
-Datasets in a butler repository are organized into named collections, and it is through these collections that calibrations are associated with the exposures they apply to, made publically available, and tract over the length of the survey \citep[see][for details]{2022SPIE12189E..11J}.
+Datasets in a butler repository are organized into named collections, and it is through these collections that calibrations are associated with the exposures they apply to, made publicly available, and tracked over the length of the survey \citep[see][for details]{2022SPIE12189E..11J}.
 
 This section details the steps used to verify, accept, and deploy calibration products for use as part of the survey.
 These steps do not preclude users from constructing and using their own set of calibrations, but they ensure that the default set of calibrations are suitable for use.
@@ -14,6 +14,8 @@ Full details about the commands used for these steps, and suggestions for a cons
 % Here we define the criteria used to promote products to ``accepted'' and ``certified''.
 
 \subsection{Verification} \label{sec:verify-accept-certify:verification}
+
+\todo{The verification criteria in this subsection are qualitative throughout. They need quantitative pass/fail thresholds and acceptance criteria, along with the values measured for DP2 --- possibly collected in a table.}
 
 After new calibrations have been constructed, they are used to process some set of exposures to show that they correct the various instrument features as expected.
 For simpler calibrations, such as bias and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames, to confirm that the residuals are consistent with only the read noise remaining.
@@ -42,7 +44,7 @@ It is likely that we will expand the list of verification tests calculated for c
 
 \subsection{Acceptance} \label{sec:verify-accept-certify:acceptance}
 
-Once a set of calibrations has been generated and verified, a meeting of the Telescope and Auxilliary Instrumentation Calibration Acceptance Board (TAXICAB) is called to decide if those calibrations should be deployed for use.
+Once a set of calibrations has been generated and verified, a meeting of the Telescope and Auxiliary Instrumentation Calibration Acceptance Board (TAXICAB) is called to decide if those calibrations should be deployed for use.
 The TAXICAB does not have a fixed membership, and welcomes any member of the project to join to offer opinions and comments on the calibrations presented.
 The goal of this board to ensure that the decision making for calibration approval is public and accessible, with the final decisions made by consensus agreement.
 Associated with each TAXICAB meeting is a ``hailing ticket,'' which is used to provide a location for details and artifacts from the generation and verification process.
@@ -60,7 +62,7 @@ Certification is a butler database operation that adds the datasets comprising a
 \subsection{Distribution} \label{sec:verify-accept-certify:distribution}
 Distribution of LSSTCam calibrations is also a butler database operation. The certified calibration collections are gathered into a single CHAINED collection named \texttt{LSSTCam/calib}, which chains the calibrations from the successive calibration epochs along with their associated validity ranges.
 This calibration collection is synchronized across all data repositories and data facilities used for data production, including the summit facility, the SLAC Shared Scientific Data Facility (S3DF) at the United States Data Facility (USDF), the French Data Facility (FrDF) at CC-IN2P3 in Lyon, and the United Kingdom Data Facility (UKDF).
-This ensures that the same calibrations are applied to the same images regardless of where data production is run and data is served, and it ensures that the Prompt Products data pipeline, which produces the live alert stream always uses the most up-to-date calibraitons.
+This ensures that the same calibrations are applied to the same images regardless of where data production is run and data is served, and it ensures that the Prompt Products data pipeline, which produces the live alert stream always uses the most up-to-date calibrations.
 Processing data with \texttt{LSSTCam/calib} therefore always applies the calibrations appropriate to each science image, without any manual selection on the part of the user.
 
 \subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
@@ -85,46 +87,46 @@ The ISR pipeline developed for LSSTCam removes the dominant instrumental signatu
 The paragraphs below summarize known limitations (instrumental systematics not fully corrected, edge cases, validity constraints, etc.) for interpreting DP2 data, our recommendations for handling them in the context of DP2 science, and plans for near-term improvements expected before Data Release~1 (DR1).
 
 \paragraph{Flares}
-Some science images contain localized, bright flare-like structures.
-They appear as elongated trails that begin at a detector edge and fade with a wavlength-dependent power-law profile consistent with attenuation of light in silicon at that wavelength.
+Some science images contain localized, bright flare-like structures.\todo{Quantify?}
+They appear as elongated trails that begin at a detector edge and fade with a wavelength-dependent power-law profile consistent with attenuation of light in silicon at that wavelength.
 The light is likely scattered from bright stars: focused starlight may reflect from the beveled edge of the silicon mount and enter a neighboring detector through its side, although this mechanism is not yet confirmed.
-Similar structures appear in some flat-field images as many small edge flares (referred to as a ``comb" pattern), possibly linked to the rough-cut silicon edge.
-So far, these features have been seen only in y-band, with both focused and unfocused illumination, and they are transient, consistent with a dependence on the chance alignment of bright stars with the focal-plane array.
+Similar structures appear in some flat-field images as many small edge flares (referred to as a ``comb'' pattern), possibly linked to the rough-cut silicon edge.
+So far, these features have been seen only in $y$-band, with both focused and unfocused illumination, and they are transient, consistent with a dependence on the chance alignment of bright stars with the focal-plane array.
 They are not yet fully characterized or masked in DP2 processing.
-Science users should treat anomalously bright detections/extended objects near detector edges with caution in y-band single-visit and difference images, and verify suspect sources by visual inspection.
+Science users should treat anomalously bright detections/extended objects near detector edges with caution in $y$-band single-visit and difference images, and verify suspect sources by visual inspection.
 
 \paragraph{Residual non-linearity wiggles}
 The double-spline non-linearity model (\S\ref{sec:processing:calibration:linearity}) removes the dominant signal-dependent departure from linear response, but small quasi-oscillatory residuals remain as a function of signal level.
 They appear as low-amplitude, signal-dependent structure in linearized images.
 These ``wiggles'' are irregular, clearly observed beyond noise fluctuations, and they do not correlate with measured properties of the input flat-field images (e.g. time, temperature) or with channel on a detector or across the focal plane.
-These residuals are well below current science requirements and are left uncorrected in DP2, but further characterization is in progress.
+These residuals are well below current science requirements and are left uncorrected in DP2, but further characterization is in progress.\todo{Quantify?}
 
 \paragraph{Differential non-linearity (DNL)}
 The DP2 linearizer corrects average amplifier non-linearity but does not yet apply a full low-signal differential non-linearity correction.
 This limitation reflects the difficulty of delivering flat-field illumination below 100 ADU/pixel with the in-dome calibration system.
-Users should exercise caution when relying on photometric or astrometric measurements at low signal levels, in particular when relying on u-band sky-background estimates from later processing steps, where backgrounds are typically at or below 100 ADU/pixel.
+Users should exercise caution when relying on photometric or astrometric measurements at low signal levels, in particular when relying on $u$-band sky-background estimates from later processing steps, where backgrounds are typically at or below 100 ADU/pixel.
 Count dithering in ISR (\S\ref{sec:isr-science:overview}) provides interim mitigation until a dedicated DNL correction is measured and deployed.
 
 \paragraph{Detector vignetting models}
 Flat-field calibrations measure relative pixel and filter quantum efficiencies and throughputs under uniform illumination, but they require an accurate model of optical vignetting across the focal plane.
-Improved vignetting models, informed by larger calibration datasets and cross-checks against on-sky stellar photometry, are planned for future calibration epochs to reduce focal-plane non-uniformity.
+Improved vignetting models, informed by larger calibration datasets and cross-checks against on-sky stellar photometry, are planned for future calibration epochs to reduce focal-plane non-uniformity.\todo{Quantify?}
 
 \paragraph{Color-dependent BFE corrections}
 The BFE is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
 Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{2024PASP..136d5003B}.
 The electrostatic BFE model used in DP2 (\S\ref{sec:processing:calibration:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
-Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for u through i bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
-Separate calibrations are appropriate for z- and y-band light, which typically  convert far deeper into the silicon.
+Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for $u$ through $i$ bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
+Separate calibrations are appropriate for $z$- and $y$-band light, which typically  convert far deeper into the silicon.
 Boundary-shift calibrations can be color-corrected by assuming a flat incident spectral energy distribution in each filter band and a depth-conversion model in silicon.
 These corrections were not enabled in DP2 because validation was incomplete, but they are expected for DR1.
-Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.
+Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.\todo{Quantify?}
 
 \paragraph{Fringing}
 Fringing is an interference pattern produced when narrow-band emission reflects within the thin, back-illuminated silicon of LSSTCam CCDs.
-It is driven primarily by night-sky emission lines and becomes appreciable in the $z$ and $y$ bands, where the silicon is increasingly transmissive and OH and other atmospheric lines contribute strongly to the background.
+It is driven primarily by night-sky emission lines and becomes appreciable in the $z$- and $y$-bands, where the silicon is increasingly transmissive and OH and other atmospheric lines contribute strongly to the background.
 In-dome flat-field exposures (\S\ref{sec:processing:calibration:flats}) imprint and partially divide out a fringe pattern, but the fringing amplitude and phase in science images depend on the time-varying on-sky spectrum and therefore are not fully canceled by flat-fielding alone.
 The DP2 ISR pipeline (\S\ref{sec:isr-science}) does not include a dedicated fringe-subtraction step.
-Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.
+Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.\todo{Quantify?}
 Fringing models developed by \citet{2023PASP..135c4503G} and corresponding corrections are under development and expected for DR1; until then, users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
 
 \paragraph{Masking}
@@ -132,5 +134,5 @@ Several limitations for the defects exist for DP2:
 \begin{itemize}
 \item vampire pixels
 \item edge bleeds
-\end{itemize}
+\end{itemize}\todo{Quantify?}
 Further developments will provide better support and masking for LSST data releases.
