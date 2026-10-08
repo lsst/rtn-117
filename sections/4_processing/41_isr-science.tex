@@ -1,23 +1,26 @@
-\section{Instrument Signature Removal for DP2 Science Data} \label{sec:isr-science}
+\section{Instrument Signal Removal for DP2 Science Data} \label{sec:isr-science}
 
-Figure~\ref{fig:isr-pipeline} lists the ISR correction steps in the order they are applied to science images for DP2.
-This section integrates the calibration products described in \S\ref{sec:calibration-production} and summarizes how they compose during routine science processing.
-Corrections are applied in reverse chronological order relative to the photon transfer chain (\S\ref{sec:lsstcam:detector-model} and Figure~\ref{fig:detector-boxes}).
-Steps that undo readout-electronics effects therefore appear before steps that undo detector-level effects, and additive corrections precede multiplicative ones such as flat-fielding.
+Instrument signal removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully-calibrated image in electron units with an associated variance plane, pixel masks, provenance, and metadata used in downstream data release processing tasks.
+Since this process undoes instrument artifacts that enter into the image in the photon transfer chain, it is crucial for the calibration steps to match the physics of the detectors.
+
+Corrections are applied in reverse chronological order relative to the photon transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
+For example, steps that undo readout-electronics effects therefore appear before steps that undo detector-level effects and additive corrections precede multiplicative ones such as flat-fielding.
+
+Running the processing pipeline with misplaced steps would either apply a correction in the wrong physical units or leave residual structure that invalidates downstream calibrations.
+Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as applied to LSSTCam science images for DP2.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/isr-pipeline.pdf}
-    \caption{Outline of the Instrument Signature Removal Pipeline (ISR) applied to LSSTCam science images for DP2.
+    \caption{Outline of the instrument signal removal (ISR) pipeline applied to LSSTCam science images for DP2.
     The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.
     Blue boxes denote static ISR steps that apply pre-computed calibration inputs; orange boxes denote steps whose application depends on the science exposure itself (for example, overscan subtraction, dithering, or saturation-footprint growth); white boxes mark the raw input and post-ISR output.
-    The dashed optional step applies pre-computed per-amplifier offsets when enabled.}
+    A dashed border marks a computation rather than an artifact correction (integer-to-float conversion, dithering, overscan statistics, and variance plane estimation).
+    The amplifier-offset step remains optional and applies pre-computed per-amplifier offsets when enabled.}
     \label{fig:isr-pipeline}
 \end{figure*}
 
-\subsection{ISR Pipeline Overview} \label{sec:isr-science:overview}
-
-The LSSTCam has a particular photon transfer chain and therefore a particular ISR correction pipeline. The following outline follows Figure~\ref{fig:isr-pipeline} step by step.
+The following outline follows Figure~\ref{fig:isr-pipeline} step by step.
 Each item names the correction applied, and the reason it sits at this location in the processing chain.
 
 \begin{enumerate}
@@ -26,20 +29,21 @@ Each item names the correction applied, and the reason it sits at this location 
 
     \item \textbf{Dither counts.}
     A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel.
-    This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.
+    This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.\todo{Quantify the bias that dithering removes: the size of the quantization-induced bias in ADU (or in mmag at the relevant sky levels) with and without dithering.}
     This step is essentially a marginalization step before a full low-signal, differential non-linearity correction can be measured and implemented.
 
     \item \textbf{Serial overscan correction.}
     An electronic, clock-injected offset plus smaller row-to-row variations are derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
-    Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout.
+    Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout. 
+    At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from extended pixel edge response (EPER) statistics.\todo{Give the typical magnitude of the clock-injected offset and of the row-to-row variations (in ADU), plus the typical per-amplifier read noise measured this way, with its spread across the focal plane.}
 
     \item \textbf{Mask saturated and suspect pixels.}
-    Pixels above the PTC turnoff saturation threshold (\S\ref{sec:processing:calibration:ptc}) get flagged as both saturated (``SAT") and suspect (``SUSPECT") in the pixel bit mask before further signal corrections.
+    Pixels above the photon transfer curve (PTC) turnoff saturation threshold (\S\ref{sec:processing:calibration:ptc}) get flagged as both saturated (``SAT'') and suspect (``SUSPECT'') in the pixel bit mask before further signal corrections.
     Early masking prevents corrupted or non-physical pixel values from biasing downstream estimates that assume a well-behaved signal.
 
     \item \textbf{Apply gain.}
     Per-amplifier gains derived from the PTC (\S\ref{sec:processing:calibration:ptc}) convert pixel values from ADU to electrons.
-    Electron units are the native domain for deferred-charge modeling, brighter-fatter correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.
+    Electron units are the native domain for deferred-charge modeling, BFE correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.
 
     \item \textbf{Crosstalk correction.}
     Electrical coupling between adjacent amplifier outputs is removed using the crosstalk matrix (\S\ref{sec:processing:calibration:xtalk}).
@@ -56,13 +60,13 @@ Each item names the correction applied, and the reason it sits at this location 
     \item \textbf{Deferred charge correction.}
     Residual charge left in pixels during serial readout---from global charge transfer inefficiency, local electronic offset in the output amplifier, and serial charge traps on ITL sensors---is corrected using the parameters fit in \S\ref{sec:processing:calibration:cti}.
     This step sits late in the readout-electronics portion of the chain because deferred charge is imprinted during serial transfer, after non-linearities in the output path have acted on the signal.
-    We do not correct deferred charge on E2V sensors because the deferred charge level is already below the level defined by \citet{LPM-17}.
+    We do not correct deferred charge on E2V sensors because the deferred charge level is already below the level defined by \citet{LPM-17}.\todo{State both numbers: the LPM-17 threshold ($5\times10^{-6}$, per \S\ref{sec:processing:calibration:cti}) and the measured E2V deferred-charge level, so ``already below'' is demonstrated rather than asserted.}
 
     \item \textbf{E2V edge-bleed mask.}
-    We flag the ``SUSPECT" mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
+    We flag the ``SAT'' mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
     
     \item \textbf{ITL dip, SatSag, and edge-bleed masks.}
-    We flag the ``SUSPECT" mask plane bit for ITL sensors that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip''), a sag in apparent signal after saturation (``SatSag''), and edge bleeding analogous to the E2V case.
+    We flag the ``ITL\_DIP'' mask plane bit for pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip''), a sag in apparent signal after saturation (``SatSag''), and edge bleeding analogous to the E2V case.
     These vendor-specific masks follow deferred-charge correction because the artifacts they mark are readout- and saturation-related structures that should be evaluated on linearized, CTI-corrected data.
 
     \item \textbf{Bias correction.}
@@ -78,18 +82,18 @@ Each item names the correction applied, and the reason it sits at this location 
     Applying the defect mask after deferred-charge, bias, and dark correction places it once readout-electronics effects and integration-period offsets have been removed, matching the processing state in which the defect catalog was built and ensuring that later defect footprint widening and interpolation operate on the full static bad-pixel map.
 
     \item \textbf{Widen saturation footprints.}
-    The saturation mask is expanded spatially to include pixels affected by charge spill and trails from saturated sources.
+    The saturation mask is expanded spatially to include pixels affected by charge spill and trails from saturated sources.\todo{Specify the growth radius in pixels used for DP2 and, if possible, the resulting typical masked-pixel fraction per detector.}
     This step follows defect masking so that all static bad regions are known before the saturation footprint is grown into neighboring pixels.
 
     \item \textbf{Brighter-fatter correction.}
-    The electrostatic brighter-fatter effect (\S\ref{sec:processing:calibration:bf}) redistributes flux among neighboring pixels to undo charge-cloud repulsion in the silicon.
-    In the photon transfer model (Figure~\ref{fig:detector-boxes}), brighter-fatter is the earliest detector-level effect on incident photons, so its correction appears correspondingly late in ISR.
+    The electrostatic BFE (\S\ref{sec:processing:calibration:bf}) redistributes flux among neighboring pixels to undo charge-cloud repulsion in the silicon.
+    In the photon transfer model (Figure~\ref{fig:detector-boxes}), the BFE is the earliest detector-level effect on incident photons, so its correction appears correspondingly late in ISR.
     It is applied after the image has been converted to linearized electron units and after additive calibration-frame corrections.
     The correction also needs to match the boundary-shifts, which were also calibrated from PTC covariances measured after these corrections.
 
     \item \textbf{Variance plane estimation.}
     An expected variance is assigned to each pixel using the PTC-derived gain and read noise (\S\ref{sec:processing:calibration:ptc}).
-    The variance plane is computed after gain application and brighter-fatter correction so that it reflects the electron units and pixel correlations relevant to source detection and weighting in downstream analyses.
+    The variance plane is computed after gain application and BFE correction so that it reflects the electron units and pixel correlations relevant to source detection and weighting in downstream analyses.
 
     At this stage the expected per-pixel variance follows the Poisson-plus-read-noise model
     \begin{equation}
@@ -100,7 +104,7 @@ Each item names the correction applied, and the reason it sits at this location 
     For DP2 science processing the image is already in electron units, so $g_a = 1$ and Eq.~\ref{eq:isr-variance} reduces to $\sigma^2_{ij} = F_{ij} + \sigma_n(a)^2$.
     Pixels with non-positive variance are flagged in the mask.
     
-    Since the variance plane is used to estimate the uncertainy on just the charge acculumated in the image, it needs to be computed before flat-field correcting.
+    Since the variance plane is used to estimate the uncertainty on just the charge accumulated in the image, it needs to be computed before flat-field correcting.
 
     \item \textbf{Flat correction.}
     The normalized flat field (\S\ref{sec:processing:calibration:flats}) is divided into the image to correct pixel-to-pixel variations in quantum efficiency and optical throughput.
@@ -110,21 +114,11 @@ Each item names the correction applied, and the reason it sits at this location 
     Pixels in the ``SAT'', ``BAD'', and ``UNMASKEDNAN'' mask planes are filled by interpolation from neighboring unmasked values; ``SUSPECT'' pixels are flagged but not interpolated by default.
     Interpolation is performed after flat-fielding so that both the science signal and the replacement values are in the same calibrated flux units expected by algorithms that assume a continuous image (for example, background estimation and certain astrometric measurements).
 
-    \item \textbf{Amplifier offsets (optional).}
-    Small per-amplifier multiplicative adjustments derived from flat-field residuals may be applied as a final optional step to reduce residual flux discontinuities at amplifier boundaries.
+    \item \textbf{Amplifier offsets.}
+    Small per-amplifier additive adjustments derived from flat-field residuals may be applied as a final optional step to reduce residual flux discontinuities at amplifier boundaries.\todo{Quantify ``small'' and ``residual'': the typical amplitude of the amplifier-boundary discontinuity before and after this step, in electrons or as a fraction of sky, and state whether it was enabled for DP2.}
     This step is optional because the PTC gain solution already includes average amplifier matching (\S\ref{sec:processing:calibration:ptc}); the offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
 \end{enumerate}
 
-Together, these steps transform the raw integer readout into a floating-point, full-calibrated image in electron units with an associated variance plane and pixel mask used in downstream data release processing tasks.
-It is crucial for the ordering to match the physics of the detectors and the reverse chronological ordering of the photon transfer chain.
-Running the processing pipeline with misplaced steps would either apply a correction in the wrong physical units or leave residual structure that invalidates a downstream calibrations
-
-\subsection{Curated Calibrations and Header Provenance} \label{sec:isr-science:provenance}
-
-Science exposures processed for DP2 are matched to a curated calibration collection (\S\ref{sec:processing:calibration:curated-calibs}) appropriate to their calibration epoch (\S\ref{sec:data:selection}).
-The collection bundles the certified bias, dark, flat, defect mask, crosstalk matrix, linearizer, deferred-charge parameters, PTC table, and brighter-fatter distortion model, together with any auxiliary data products required for masking or optional corrections (\S\ref{sec:processing:calibration:auxiliary-data-products}).
-When the observing conditions, sequencer configuration, or calibration campaign change enough to warrant a new epoch, a new curated collection is produced and certified before it is attached to incoming science data.
-
-Exposure header metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
-This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit whether optional steps such as amplifier-offset correction were enabled for a given dataset.
+The output exposure's metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
+This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
 The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
