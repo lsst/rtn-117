@@ -72,6 +72,15 @@ By running the verification tasks on new calibration exposures as they are taken
 Although not running during the DP2 observations and analysis, this verification will be added to the processing performed at the summit, with the metrics calculated from this processing passed to the Sasquatch and Chronograf monitoring system that is used to track other performance quantities.
 This monitoring will allow the health of the camera to be tracked, and for the generation of new calibrations to be prompted by any observed changes in the metrics over time.
 
+A drift in these metrics showing that the current calibrations no longer describe the instrument within tolerance is one of several triggers for a new calibration epoch (\S\ref{sec:data:selection}).
+A new epoch, with a complete new set of calibration products, is also started whenever any of the following happens:
+\begin{itemize}
+    \item a change to the sequencer or to any other part of the CCD operating mode (e.g.\ clock voltages or timing);
+    \item a power cycle of the focal plane or the readout electronics, such as during maintenance, which can shift bias levels, gains, and defect populations;
+    \item a hardware intervention on the camera, such as recovering or replacing a detector or readout board.
+\end{itemize}
+Each new set of calibrations then passes through the same verification, acceptance, and certification steps described above.
+
 \subsection{Data products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
 Describe the output schema, distribution process (exporting/importing, rucio, TAXICAB tracking), and user access.
 

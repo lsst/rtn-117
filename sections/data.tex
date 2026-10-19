@@ -51,9 +51,23 @@ Describe any system-level constraints that influenced calibration strategy.
 
 Describe the LSST Camera and any technical limitations (bad detectors/amps like det 122, CCD power cycling and its affect on existing calibs).
 
-Define/Describe the sequencer changes (to do in LSSTCam section)
+The CCD clocking pattern, or sequencer, sets the timing of every parallel transfer, serial transfer, and sampling step during readout.
+Because many instrument signatures depend on this timing, a change to the sequencer can invalidate calibration products built under the previous one.
+\citet{2026arXiv260631806M} describe how the LSSTCam sequencer has evolved since the camera arrived at the summit.
+The most significant on-sky change was the move from two 15\,s snaps to a single 30\,s exposure, which relaxed the readout time requirement from 2\,s to 3\,s.
+The extra time was spent on a longer per-row readout interval, while the other sequencer parameters tuned during laboratory testing were left unchanged.
+This lowered the read noise of the E2V sensors by about 0.5\,e$^-$, while the ITL sensors were largely unaffected \citep{2026arXiv260631806M}.
 
-Analyzed with updated sequencer (s3v2). (see calibration epoch section)
+DP2 includes science data taken under two sequencers: the original 2\,s \texttt{2s\_v30} sequencer (epoch~1) and the \texttt{3s\_v1} sequencer (epochs~2 and 3; Figure~\ref{fig:calibepoch}).
+Each sequencer required its own set of calibrations.
+The move to 3\,s readout changed the read noise and bias structure measured in the overscan, and it also changed the size of the crosstalk signal, so the crosstalk coefficients had to be measured again (\S\ref{sec:processing:calibration:xtalk}).
+A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on January 6, 2026.\todo{Briefly state what changed between \texttt{3s\_v1} and \texttt{3s\_v2}.}
+Throughout DP2, detector~101 (R23\_S02) showed signal-dependent correlated noise.
+This noise interfered with the photon transfer curve calibration (\S\ref{sec:processing:calibration:ptc}) and with the measurement of both gain and read noise for that detector.
+The correlated noise disappeared with the move to the \texttt{3s\_v2} sequencer.
+No \texttt{3s\_v2} data or calibrations are included in the DP2 release, but \texttt{3s\_v2} is the sequencer used for survey operations from now on.
+For that reason, the calibration products shown in this paper are the \texttt{3s\_v2} products.
+The algorithms are the same for all sequencers; only the input exposures and the resulting calibration products differ.
 
 
 \begin{figure*}[t]
