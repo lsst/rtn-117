@@ -6,13 +6,13 @@ Its design, and the technical progress it demanded, were developed in order to m
 % Focal plane
 The LSSTCam focal plane is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in \citet{CTN-001}.
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
-The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs. 
+The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
 \todo{Add focal plane layout plot}
 
 % CCDs
 LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and amplifiers.
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
-Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signal removal.
+Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signature removal.
 The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for more details.
 %here add more about electron transportation and size of ovescan region and serial register.
 
@@ -22,7 +22,7 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
               \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b) E2V, post-ISR}}
     \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c) ITL, raw}
               \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d) ITL, post-ISR}}
-    \caption{One LSSTCam exposure (2026010700038) before and after instrument signal removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
+    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
     The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
     The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
     Each panel is displayed with its own grayscale z-scale stretch, and all panels share the same pixel scale, so the post-ISR images appear smaller because the overscan has been removed.}
@@ -31,14 +31,13 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
 
 \subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}\label{sec:processing}
 
-
 Calibration and ISR tasks are organized as a pipeline based on our current model of the detector physics since instrument artifacts are removed in the reverse chronological order in which they compound along the signal chain.
 
-The calibration and instrument signal removal (ISR) therefore needs a clear picture of the signal chain, from the point of conversion of photons in the detector to the serialized digital records, as well as
+The calibration and instrument signature removal (ISR) therefore needs a clear picture of the signal chain, from the point of conversion of photons in the detector to the serialized digital records, as well as
 physical models of each systematic transformation that applies to the signal in each step.
 
 Figure \ref{fig:detector-boxes} depicts the different steps in this chain and their physical ordering from the detector
-to the Readout Board (REB). 
+to the Readout Board (REB).
 
 The algorithms and processing steps required for LSSTCam calibration and ISR were developed from measurements and analysis during electro-optical testing on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope in-dome during commissioning.
 \citet{2024SPIE13096E..1SR} gives a detailed account of system characterization work and results from the laboratory campaigns.
@@ -53,6 +52,16 @@ Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified i
     \label{fig:detector-boxes}
 \end{figure*}
 
+The chain begins in the silicon, where incident photons are converted to electrons that collect in the pixel potential wells.
+Two effects enter here: dark current adds charge that is thermally generated rather than photo-generated, and the brighter-fatter effect redistributes charge to neighboring pixels as the wells fill.
+Because both act on the charge before it is moved, they are the first effects in the chain, and the last to be corrected.
+The charge packets are then shifted down the columns by parallel transfer and along the serial register toward the amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) and serial trapping.
+This shifting precedes the amplifier, so deferred charge is still present in the image in units of electrons.
+At the output node, the on-chip amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried in volts rather than electrons.
+The signal then passes through the cabling to the REB, where crosstalk couples signals between neighboring amplifiers and across the midline, after which the ASPIC applies a second, temperature-dependent gain ($g_2$).
+Non-linearities at high, mid, and low signal levels enter at different points along this analog path, and the dual-slope integrator, with a third gain $g_3$, forms the voltage difference between the reset and signal levels.
+Only after this analog processing is a clock-injected offset added by the bias injection stage, which produces the 2D bias structure and the bias ``wave'', and the signal is finally digitized by the ADC, whose differential non-linearity (DNL) is the last effect imposed.
+The overall gain $g$ describes the net conversion from electrons to digital ADU.
 
 %Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
 

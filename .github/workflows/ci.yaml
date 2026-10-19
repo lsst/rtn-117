@@ -43,4 +43,4 @@ jobs:
           LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
           LTD_USERNAME: ${{ secrets.LTD_USERNAME }}
         run: |
-          lander --upload --pdf RTN-117.pdf --ltd-product rtn-117 --title "Image Calibration and Instrument Signal Removal for the First Year of Rubin LSSTCam" --handle "RTN-117" --lsstdoc "RTN-117.tex"
+          lander --upload --pdf RTN-117.pdf --ltd-product rtn-117 --title "Image Calibration and Instrument Signature Removal for the First Year of Rubin LSSTCam" --handle "RTN-117" --lsstdoc "RTN-117.tex"

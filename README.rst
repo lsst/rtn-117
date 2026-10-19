@@ -4,7 +4,7 @@
    :target: https://github.com/lsst/rtn-117/actions/
 
 ###################################################################################
-Image Calibration and Instrument Signal Removal for the First Year of Rubin LSSTCam
+Image Calibration and Instrument Signature Removal for the First Year of Rubin LSSTCam
 ###################################################################################
 
 RTN-117
