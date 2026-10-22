@@ -1,7 +1,6 @@
 \section{The LSST Camera (LSSTCam)} \label{sec:lsstcam}
 
-The Vera C. Rubin Observatory's camera LSSTCam \cite{10.71929/rubin/2571927} is the largest digital camera in the world for astronomy.
-Its design, and the technical progress it demanded, were developed in order to meet the requirements set by the ambitious goals of LSST, as described in \cite{2024SPIE13096E..1SR}.
+The design of the LSSTCam \cite{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
 
 % Focal plane
 The LSSTCam focal plane is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in \citet{CTN-001}.
@@ -9,9 +8,43 @@ Each raft is composed of three Readout Electronics Boards (REB) providing the po
 The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
 \todo{Add focal plane layout plot}
 
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/lsstcam_focal_plane.pdf}
+    \caption{LSSTCam focal plane layout in focal-plane coordinates, viewed looking down through the camera lenses onto the focal plane, following \citet{CTN-001}.
+    Each sensor is labeled with its sensor slot (S\#\#, SG\#, SW\#) and detector number, and each raft with its designation (R\#\#); the thin lines within each sensor delimit its readout channels (16 per science and guider sensor, 8 per wavefront sensor).
+    E2V and ITL science sensors are shown in blue and orange, the guider and split-wavefront sensors in the four corner rafts in purple and green, respectively.
+    Dead (black) and high-noise (hatched) channels are those identified at the end of Run 7 electro-optical testing \citep{SITCOMTN-148}; detector 122 (R30\_S12) is not operational (cross-hatched).
+    The top axis gives the approximate field angle from the nominal plate scale.}
+    \label{fig:focal-plane}
+\end{figure*}
+
 % CCDs
-LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and amplifiers.
+LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and signal amplifiers.
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
+Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
+Each row ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (Table~\ref{tab:amp-geometry}).
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Readout geometry of one LSSTCam amplifier channel, in pixels.
+    Sizes are given as rows (parallel direction) $\times$ columns (serial direction).}
+    \label{tab:amp-geometry}
+    \begin{tabular}{lcc}
+        \hline
+        Region & ITL & E2V \\
+        \hline
+        Image area & $2000 \times 509$ & $ 2002 \times 512$ \\
+        Serial prescan & 3 & 10 \\
+        Serial overscan & 64 & 54 \\
+        Parallel overscan & 48 & 46 \\
+        \hline
+        Raw channel & $2048 \times 576$ & $2048 \times 576$ \\
+        \hline
+    \end{tabular}
+\end{table}
+
 Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signature removal.
 The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for more details.
 %here add more about electron transportation and size of ovescan region and serial register.
@@ -25,23 +58,19 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
     \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
     The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
     The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
-    Each panel is displayed with its own grayscale z-scale stretch, and all panels share the same pixel scale, so the post-ISR images appear smaller because the overscan has been removed.}
+    All panels share the same pixel scale.}
     \label{fig:isr-before-after}
 \end{figure*}
 
 \subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}\label{sec:processing}
 
-Calibration and ISR tasks are organized as a pipeline based on our current model of the detector physics since instrument artifacts are removed in the reverse chronological order in which they compound along the signal chain.
-
-The calibration and instrument signature removal (ISR) therefore needs a clear picture of the signal chain, from the point of conversion of photons in the detector to the serialized digital records, as well as
-physical models of each systematic transformation that applies to the signal in each step.
-
-Figure \ref{fig:detector-boxes} depicts the different steps in this chain and their physical ordering from the detector
-to the Readout Board (REB).
-
-The algorithms and processing steps required for LSSTCam calibration and ISR were developed from measurements and analysis during electro-optical testing on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope in-dome during commissioning.
+The physical properties of the detectors and readout electronics imprint instrumental signatures that cause each recorded pixel value to depart from the incident signal.
+Our model of the conversion of photons to charge and the subsequent digitization, was established through electro-optical characterization on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope during commissioning.
 \citet{2024SPIE13096E..1SR} gives a detailed account of system characterization work and results from the laboratory campaigns.
-Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
+
+Calibration and instrument signature removal (ISR) tasks are organized as a pipeline based on our current model of the detector physics since instrument artifacts are removed in the reverse chronological order in which they compound along the signal chain.
+The algorithms therefore need a clear picture of the signal chain, as well as physical models of each systematic transformation that applies to the signal in each step.
+Figure \ref{fig:detector-boxes} depicts where artifacts enter in this chain from the detector to the Readout Board (REB).
 
 \begin{figure*}[t]
     \centering
@@ -62,7 +91,3 @@ The signal then passes through the cabling to the REB, where crosstalk couples s
 Non-linearities at high, mid, and low signal levels enter at different points along this analog path, and the dual-slope integrator, with a third gain $g_3$, forms the voltage difference between the reset and signal levels.
 Only after this analog processing is a clock-injected offset added by the bias injection stage, which produces the 2D bias structure and the bias ``wave'', and the signal is finally digitized by the ADC, whose differential non-linearity (DNL) is the last effect imposed.
 The overall gain $g$ describes the net conversion from electrons to digital ADU.
-
-%Figure~\ref{fig:detector-boxes} summarizes the instrumental effects identified in the photon transfer chain and their order.
-
-%The ISR pipeline implemented in the Rubin data processing aims at correcting each of these effects in the order opposite to which they happen.

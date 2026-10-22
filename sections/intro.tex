@@ -8,7 +8,6 @@ Key challenges to delivering the necessary level of calibration include:
 \begin{enumerate}
     \item \textbf{Instrument complexity:} The LSST Camera (LSSTCam) is the largest digital camera built for astronomy.
     Its 3.2-gigapixel focal plane consists of 205 fully depleted, backside-illuminated charge-coupled devices (CCDs) from two vendors (Teledyne e2v and Imaging Technology Laboratory, hereafter E2V and ITL).
-    % TODO(number): 205 CCDs here vs. 189 science CCDs plus 3 corner CCDs x 4 corners = 201 in \S\ref{sec:lsstcam}; also, 3.2 Gpix matches the 189 science CCDs (189 x 4096^2 ~ 3.2 Gpix), not 205.
     Detector and amplifier variations require calibration and removal algorithms robust to heterogeneous sensor behavior.
     \item \textbf{Data volume and cadence:} LSSTCam typically acquires 30~s exposures with 3~s readout, yielding about 1000 exposures per night and nightly data rates of approximately 20~TB. The need for fast, efficient processing speed is driven by the need for prompt alert production and the active optics system.
     \item \textbf{Calibration system and optics:} The flat-field illuminator (flat-field screen, LEDs, tunable laser) needs to provide uniform and stable illumination over the large focal plane, and the Collimated Beam Projector (CBP) needs to provide a capability to measure total system throughput at any given location of the focal plane in a fast converging ($f/1.2$) optical system.
