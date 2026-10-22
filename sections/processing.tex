@@ -6,6 +6,23 @@ Since this process undoes instrument artifacts that enter into the image in the 
 Corrections are applied in reverse chronological order relative to the photon transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
 For example, steps that undo readout-electronics effects therefore appear before steps that undo detector-level effects and additive corrections precede multiplicative ones such as flat-fielding.
 
+Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signature removal.
+The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for more details.
+%here add more about electron transportation and size of ovescan region and serial register.
+
+\begin{figure*}[t]
+    \centering
+    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a) E2V, raw}
+              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b) E2V, post-ISR}}
+    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c) ITL, raw}
+              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d) ITL, post-ISR}}
+    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
+    The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
+    The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
+    All panels share the same pixel scale.}
+    \label{fig:isr-before-after}
+\end{figure*}
+
 Running the processing pipeline with misplaced steps would either apply a correction in the wrong physical units or leave residual structure that invalidates downstream calibrations.
 Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as applied to LSSTCam science images for DP2.
 
@@ -34,7 +51,7 @@ Each item names the correction applied, and the reason it sits at this location 
 
     \item \textbf{Serial overscan correction.}
     An electronic, clock-injected offset plus smaller row-to-row variations are derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
-    Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout. 
+    Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout.
     At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from extended pixel edge response (EPER) statistics.\todo{Give the typical magnitude of the clock-injected offset and of the row-to-row variations (in ADU), plus the typical per-amplifier read noise measured this way, with its spread across the focal plane.}
 
     \item \textbf{Mask saturated and suspect pixels.}
@@ -64,7 +81,7 @@ Each item names the correction applied, and the reason it sits at this location 
 
     \item \textbf{E2V edge-bleed mask.}
     We flag the ``SAT'' mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
-    
+
     \item \textbf{ITL dip, SatSag, and edge-bleed masks.}
     We flag the ``ITL\_DIP'' mask plane bit for pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip''), a sag in apparent signal after saturation (``SatSag''), and edge bleeding analogous to the E2V case.
     These vendor-specific masks follow deferred-charge correction because the artifacts they mark are readout- and saturation-related structures that should be evaluated on linearized, CTI-corrected data.
@@ -103,7 +120,7 @@ Each item names the correction applied, and the reason it sits at this location 
     where $F_{ij}$ is the science image value in the current ISR units, $g_a$ is the PTC gain for amplifier~$a$ (electrons per ADU), and $\sigma_n(a)$ is the read noise in electrons.
     For DP2 science processing the image is already in electron units, so $g_a = 1$ and Eq.~\ref{eq:isr-variance} reduces to $\sigma^2_{ij} = F_{ij} + \sigma_n(a)^2$.
     Pixels with non-positive variance are flagged in the mask.
-    
+
     Since the variance plane is used to estimate the uncertainty on just the charge accumulated in the image, it needs to be computed before flat-field correcting.
 
     \item \textbf{Flat correction.}
@@ -148,7 +165,7 @@ Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
 \subsection{Crosstalk} \label{sec:processing:calibration:xtalk}
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section \ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of inducing crosstalk between the different amplifier channels.
-In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring analog signal-processing integrated circuits (ASPICs). 
+In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring analog signal-processing integrated circuits (ASPICs).
 The result of these couplings is that the data for a particular amplifier shows a scaled copy of neighboring amplifiers added to the image.\todo{Give the typical and maximum crosstalk coefficient magnitudes measured for LSSTCam (e.g.\ $\sim10^{-4}$ nearest-neighbour, $<10^{-5}$ elsewhere), and how the two coupling mechanisms differ in strength.}
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
 This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.

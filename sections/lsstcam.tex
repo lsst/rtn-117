@@ -3,19 +3,16 @@
 The design of the LSSTCam \cite{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
 
 % Focal plane
-The LSSTCam focal plane is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in \citet{CTN-001}.
+The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in \citet{CTN-001}.
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
 The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
-\todo{Add focal plane layout plot}
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=\textwidth]{figures/lsstcam_focal_plane.pdf}
-    \caption{LSSTCam focal plane layout in focal-plane coordinates, viewed looking down through the camera lenses onto the focal plane, following \citet{CTN-001}.
-    Each sensor is labeled with its sensor slot (S\#\#, SG\#, SW\#) and detector number, and each raft with its designation (R\#\#); the thin lines within each sensor delimit its readout channels (16 per science and guider sensor, 8 per wavefront sensor).
-    E2V and ITL science sensors are shown in blue and orange, the guider and split-wavefront sensors in the four corner rafts in purple and green, respectively.
-    Dead (black) and high-noise (hatched) channels are those identified at the end of Run 7 electro-optical testing \citep{SITCOMTN-148}; detector 122 (R30\_S12) is not operational (cross-hatched).
-    The top axis gives the approximate field angle from the nominal plate scale.}
+    \caption{LSSTCam focal plane layout in focal-plane coordinates and field angle, following \citet{CTN-001}.
+    Each sensor is labeled with its sensor slot (S\#\#) and detector number, and each raft with its designation (R\#\#); the thin lines within each sensor delimit its readout channels.
+    Detector 122 (R30\_S12) is not operational (cross-hatched), and was not turned on for the duration of the commissioning and pre-survey operation periods.}
     \label{fig:focal-plane}
 \end{figure*}
 
@@ -44,23 +41,6 @@ Each row ends with extra serial overscan columns, and the image ends with extra 
         \hline
     \end{tabular}
 \end{table}
-
-Figure \ref{fig:isr-before-after} shows one E2V and one ITL detector from the same exposure before and after instrument signature removal.
-The raw frames retain the serial and parallel overscan, which are virtual pixels read to estimate charge transfer inefficiency (CTI), see \ref{sec:processing:calibration:cti} for more details.
-%here add more about electron transportation and size of ovescan region and serial register.
-
-\begin{figure*}[t]
-    \centering
-    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a) E2V, raw}
-              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b) E2V, post-ISR}}
-    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c) ITL, raw}
-              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d) ITL, post-ISR}}
-    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
-    The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
-    The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
-    All panels share the same pixel scale.}
-    \label{fig:isr-before-after}
-\end{figure*}
 
 \subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}\label{sec:processing}
 
