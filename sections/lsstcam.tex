@@ -21,6 +21,7 @@ LSSTCam CCDs are read out in 16 channels, each with their own readout electronic
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
 Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
 Each row ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (Table~\ref{tab:amp-geometry}).
+The CCD clocking pattern, or sequencer, sets the timing of every parallel transfer, serial transfer, and sampling step during readout.
 
 \begin{table}[t]
     \centering
