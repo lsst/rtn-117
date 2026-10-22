@@ -21,7 +21,6 @@ LSSTCam CCDs are read out in 16 channels, each with their own readout electronic
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
 Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
 Each row ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (Table~\ref{tab:amp-geometry}).
-The CCD clocking pattern, or sequencer, sets the timing of every parallel transfer, serial transfer, and sampling step during readout.
 
 \begin{table}[t]
     \centering
@@ -43,7 +42,14 @@ The CCD clocking pattern, or sequencer, sets the timing of every parallel transf
     \end{tabular}
 \end{table}
 
-\subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}\label{sec:processing}
+The CCD clocking pattern, or sequencer, sets the timing of every parallel transfer, serial transfer, and sampling step during readout.
+In order to minimize survey overhead time, the full focal plane is read out in under 3 seconds. However, data collected during DP2
+includes science data taken under two different sequencers, an earlier 2\,s readout version (\texttt{2s\_v30}) and a later, 3\,s readout version (\texttt{3s\_v1}), as shown in Figure~\ref{fig:calibepoch}.
+After the DP2 data taking period, we switched to a slightly different sequencer (\texttt{3s\_v2}). Despite the fact that no data in DP2 was collected with the camera operating under the \texttt{3s\_v2}
+sequencer, all the calibrations and metrics shown in this paper were derived with the \texttt{3s\_v2} sequencer since it shows the current on-sky performance of the LSSTCam and the current state of calibration and ISR.
+We will discuss the differences between these sequencers and their impact on the camera performance in the Discussion (Section~\ref{sec:discussion:sequencer}).
+
+\subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}
 
 The physical properties of the detectors and readout electronics imprint instrumental signatures that cause each recorded pixel value to depart from the incident signal.
 Our model of the conversion of photons to charge and the subsequent digitization, was established through electro-optical characterization on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope during commissioning.

@@ -1,19 +1,14 @@
-\section{Data}\label{sec:data}
+\section{Calibration System (CalSys)}\label{sec:calsys}
 Each instrumental effect in the photon transfer chain (Figure~\ref{fig:detector-boxes}) is characterized by a dedicated set of calibration exposures, from which we build the calibration data products for each one that applied during ISR.
 Calibration campaigns produce zero-second bias frames and dark exposures measure the electronic offset and dark current; pairs of flat fields taken over a wide range of illumination levels constrain the photon transfer curve, gain, non-linearity, and brighter-fatter effect; and projected spot patterns isolate crosstalk between readout channels.
 The quality and reproducibility of these products depends both on the illumination hardware and on our control of the camera and calibration systems.
 
 There are two calibration systems that will be used continuously throughout the LSST (the flat-field illuminator and the collimated beam projector).
-In this section we first describe the calibration systems used to acquire these data in the dome during commissioning (\S\ref{sec:data:calsys}).
-% We then describe how the DP2 data are divided into calibration epochs, defined by changes to the CCD sequencer and by power cycles of the camera, each of which requires its own set of calibrations (\S\ref{sec:data:selection}).
+In this section we first describe the calibration systems used to acquire these data in the dome during commissioning (\S\ref{sec:calsys}).
+% We then describe how the DP2 data are divided into calibration epochs, defined by changes to the CCD sequencer and by power cycles of the camera, each of which requires its own set of calibrations (\S\ref{sec:discussion:sequencer}).
 
-\subsection{Calibration System (CalSys)}\label{sec:data:calsys}
-
-\textcolor{red}{add citation to Seans SPIE paper.}
-
-Here we discuss the calibration system hardware and performance available for generating the calibration datasets needed as input to the ISR pipeline.
-
-% \subsubsection{Camera Calibration Optical Bench}\label{sec:data:calsys:ccob}
+Here we discuss the calibration system hardware and performance available for generating the calibration datasets needed as input to the ISR pipeline \citep{TSTN-066}.
+% \subsection{Camera Calibration Optical Bench}\label{sec:calsys:ccob}
 
 % To create optical scenes for characterization, the Camera is placed in-line with an optical scene projector called the Camera Calibration Optical Bench (CCOB) \citep{2024SPIE13103E..0WU}.
 % The CCOB-wide beam is designed to project a uniform monochromatic light source onto the focal plane, thanks to one of six LEDs, each corresponding to a central wavelength in the LSST filter bandpass.\todo{Can we quantify ``uniform'' and ``monochromatic'' here?, e.g. the achieved illumination uniformity across the focal plane (percent peak-to-peak or RMS), and the LED central wavelengths with their FWHM.}
@@ -26,13 +21,13 @@ Here we discuss the calibration system hardware and performance available for ge
 
 % \textbf{I am not sure how much we want to talk about the CCOB here. If there is a specific focus (qualifying the CCDs before integration), I can revisit this}
 
-\subsubsection{Flat-Field Illuminator}\label{sec:data:calsys:flat_field_illuminator}
+\subsection{Flat-Field Illuminator}\label{sec:calsys:flat-field-illuminator}
 
 The Flat-Field Illuminator is designed to provide a stable, uniform, and well-characterized
 illumination required to measure the absolute and relative instrumental responses of the LSST Camera.
 The physical architecture of the flat-field system is driven by the fast ($f/1.2$) optical configuration
 of the Simonyi Survey Telescope, which demands exceptional control over both the angular and spatial
-uniformity of the calibration wavefront.
+uniformity of the calibration wavefront \citep{TSTN-060}.
 
 This system aims to satisfy a photometric precision of 5 mmag in repeatability and 10 mmag in spatial
 uniformity across the field-of-view. The system directs light toward a
@@ -40,7 +35,7 @@ large 10.27-meter diameter Lambertian calibration screen that is tilted to 23
 degrees to align precisely with the optical axis of the telescope. Because the calibration hardware must
 co-rotate dynamically with the observatory dome during operations, the primary illumination
 sources, environmental enclosures, and projection optics are mounted directly onto the dome structures
-rather than a static mount.
+rather than a static mount \citep{TSTN-057}.
 
 To deliver both broadband and monochromatic illumination during the LSST, the system integrates two
 independent illumination subsystems within a single centralized optical projector, positioned at the
@@ -49,59 +44,19 @@ by a specialized module featuring a collection of 10 high-power LEDs selected to
 $ugrizy$ filter passbands, with one LED within the $u$ passband with the other five passbands each
 getting coverage from two LEDs. For monochromatic calibration, the system incorporates a tunable laser
 system that provides continuous wavelength coverage from 300 to 2600 nm at a 1 kHz pulse rate. This
-laser can deliver narrow tuning steps between 0.05 and 1 nm and a spectral line width under 1 nm FWHM.\textbf{Cite a paper by Parker on this}
+laser can deliver narrow tuning steps between 0.05 and 1 nm and a spectral line width under 1 nm FWHM \citep{TSTN-065}.
 
 % The data products generated by these dual operating modes support separate but complementary calibration goals within the LSST DM Science Pipelines, to ensure uniformity across the LSSTCam focal plane.
 % In the DP2 dataset, the flat fields used during ISR are constructed with a weighted combination of the two LEDs within the passband (or the single LED in the case of $u$-band).
 % These data products enable the correction of detector-level systematics, including gain variations, charge transfer inefficiencies, pixel-level defects, and sensor distortions induced by the brighter-fatter effect (BFE).
 % The monochromatic flat-field data products from the tunable laser are not used in calibration production for DP2, but will be utilized in future data releases to map the system's chromatic throughput as a function of focal plane position.
 
-\subsubsection{Collimated Beam Projector}\label{sec:data:calsys:cbp}
+\subsection{Collimated Beam Projector}\label{sec:calsys:cbp}
 
 The Collimated Beam Projector (CBP) is a separate, in-dome photometric calibration instrument to
-measure the system throughput of focused light to $\mathcal{O}(\text{mmag})$ precision \textbf{Cite a CBP paper}.
+measure the system throughput of focused light to $\mathcal{O}(\text{mmag})$ precision \citep{2026arXiv260631822A}.
 The CBP consists of a modified Schmidt reflector telescope fed by the tunable laser to produce a
 collimated beam of known flux. By co-moving the CBP and Simonyi Survey Telescope, we are able to
 place this beam anywhere on the primary mirror and have a focused spot anywhere on the focal plane.
 The CBP can switch between five different masks at the focal plane, allowing for different spot
-patterns to be projected onto the focal plane. \todo{cite CBP SPIE paper}
-
-\subsection{Calibration Epochs}\label{sec:data:selection}
-Describe the data selection process for the DP2 dataset and calibration epoch. See \ref{fig:calibepoch}.
-
-Describe any system-level constraints that influenced calibration strategy.
-
-Describe the LSST Camera and any technical limitations (bad detectors/amps like det 122, CCD power cycling and its affect on existing calibs).
-
-Because many instrument signatures depend on this timing, a change to the sequencer can invalidate calibration products built under the previous one.
-\citet{2026arXiv260631806M} describe how the LSSTCam sequencer has evolved since the camera arrived at the summit.
-The most significant on-sky change was the move to a more relaxed total focal plane readout time from 2\,s to 3\,s.
-The extra time was spent on a longer per-row readout interval, while the other sequencer parameters tuned during laboratory testing were left unchanged.
-This lowered the read noise of the E2V sensors by about 0.5\,e$^-$, while the ITL sensors were largely unaffected \citep{2026arXiv260631806M}.
-
-DP2 includes science data taken under two sequencers: the original 2\,s \texttt{2s\_v30} sequencer (epoch~1) and the \texttt{3s\_v1} sequencer (epochs~2 and 3; Figure~\ref{fig:calibepoch}).
-Each sequencer required its own set of calibrations.
-The move to 3\,s readout changed the read noise and bias structure measured in the overscan, and it also changed the size of the crosstalk signal, so the crosstalk coefficients had to be measured again (\S\ref{sec:processing:calibration:xtalk}).
-A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on January 6, 2026.\todo{Briefly state what changed between \texttt{3s\_v1} and \texttt{3s\_v2}.}
-Throughout DP2, detector~101 (R23\_S02) showed signal-dependent correlated noise.
-This noise interfered with the photon transfer curve calibration (\S\ref{sec:processing:calibration:ptc}) and with the measurement of both gain and read noise for that detector.
-The correlated noise disappeared with the move to the \texttt{3s\_v2} sequencer.
-No \texttt{3s\_v2} data or calibrations are included in the DP2 release, but \texttt{3s\_v2} is the sequencer used for survey operations from now on.
-For that reason, the calibration products shown in this paper are the \texttt{3s\_v2} products.
-The algorithms are the same for all sequencers; only the input exposures and the resulting calibration products differ.
-
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=0.75\textwidth]{figures/calibration-epochs-timeline.pdf}
-    \caption{Timeline of the observing periods and calibration epochs for LSSTCam during commissioning and pre-survey operations included in DP2.
-    The timeline begins with LSSTCam going on-sky on 2025 April 15; the first science data included in DP2 was taken on 2025 April 24.
-    DP2 science data are separated into calibration epochs, which are set by changes to the CCD operating mode (sequencer) or by power cycles for maintenance.
-    Blue boxes mark the interval covered by each calibration epoch and are labeled with the sequencer in use: epoch~1 (from 2025 April 24, \texttt{2s\_v30}), epoch~2 (2025 July 3 to September 21, \texttt{3s\_v1}), and epoch~3 (from 2025 October 24, \texttt{3s\_v1}).
-    Epoch~4 (from 2026 January 26, \texttt{3s\_v2}) follows the DP2 data cutoff on 2026 January 6.
-    The calibrations shown in this paper are the most recent (\texttt{3s\_v2}) set, even though no data from this epoch were released in DP2.
-    The dotted segment marks an engineering and maintenance downtime between 2025 September 21 and October 24 that is not covered by a calibration epoch.
-    The feature freeze for v30 of the LSST Data Management (DM) Science Pipelines software was 2025 December 3.}
-    \label{fig:calibepoch}
-\end{figure*}
-
+patterns to be projected onto the focal plane \citep{2026arXiv260631822A}.
