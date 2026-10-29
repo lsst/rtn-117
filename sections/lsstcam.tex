@@ -3,7 +3,7 @@
 The design of the LSSTCam \cite{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
 
 % Focal plane
-The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 thick, fully-depleted charge-coupled devices (CCDs) used for science imaging, organized into 3$\times$3 rafts (described in more detail in \citet{CTN-001}).
+The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 thick, fully depleted charge-coupled devices (CCDs) used for science imaging, organized into 3$\times$3 rafts (described in more detail in \citet{CTN-001}).
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
 The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
 
@@ -12,15 +12,15 @@ The corners of the mosaic contain two CCDs for guiding and one split-wavefront C
     \includegraphics[width=\textwidth]{figures/lsstcam_focal_plane.pdf}
     \caption{LSSTCam focal plane layout in focal-plane coordinates and field angle, following \citet{CTN-001}.
     Each sensor is labeled with its sensor slot (S\#\#) and detector number, and each raft with its designation (R\#\#); the thin lines within each sensor delimit its readout channels.
-    Detector 122 (R30\_S12) is not operational (cross-hatched), and was not turned on for the duration of the commissioning and pre-survey operation periods.}
+    Detector 122 (R30\_S12) is not operational (cross-hatched) and was not turned on for the duration of the commissioning and pre-survey operation periods.}
     \label{fig:focal-plane}
 \end{figure*}
 
 % CCDs
-LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and signal amplifiers.
-Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
+LSSTCam CCDs are read out in 16 channels, each with its own readout electronics and signal amplifiers.
+The imaging region of each channel is 2002 pixels high and 512 pixels wide for E2V sensors and 2000 pixels high and 509 pixels wide for ITL sensors, giving a full imaging area of $4096 \times 4004$ pixels (E2V) and $4072 \times 4000$ pixels (ITL).
 Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
-During readout, eachrow ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (summarized in Table~\ref{tab:amp-geometry}).
+During readout, each row begins with serial prescan columns and ends with serial overscan columns, and the image ends with parallel overscan rows, so that the raw readout of every channel is 2048 rows $\times$ 576 columns for both vendors (Table~\ref{tab:amp-geometry}).
 
 \begin{table}[t]
     \centering
@@ -32,10 +32,10 @@ During readout, eachrow ends with extra serial overscan columns, and the image e
         \hline
         Region & ITL & E2V \\
         \hline
-        Image area & $2000 \times 509$ & $ 2002 \times 512$ \\
-        Serial prescan & 3 & 10 \\
-        Serial overscan & 64 & 54 \\
-        Parallel overscan & 48 & 46 \\
+        Image area & $2000 \times 509$ & $2002 \times 512$ \\
+        Serial prescan (columns) & 3 & 10 \\
+        Serial overscan (columns) & 64 & 54 \\
+        Parallel overscan (rows) & 48 & 46 \\
         \hline
         Raw channel & $2048 \times 576$ & $2048 \times 576$ \\
         \hline
@@ -44,8 +44,8 @@ During readout, eachrow ends with extra serial overscan columns, and the image e
 
 The CCD clocking pattern, or sequencer, sets the timing of every parallel transfer, serial transfer, and sampling step during readout.
 In order to minimize survey overhead time, the full focal plane is read out in under 3 seconds. However, data collected during DP2
-includes science data taken under two different sequencers, an earlier 2\,s readout version (\texttt{2s\_v30}) and a later, 3\,s readout version (\texttt{3s\_v1}), as shown in Figure~\ref{fig:calibepoch}.
-After the DP2 data taking period, we switched to a slightly different sequencer (\texttt{3s\_v2}). Despite the fact that no data in DP2 was collected with the camera operating under the \texttt{3s\_v2}
+include science data taken under two different sequencers, an earlier 2\,s readout version (\texttt{2s\_v30}) and a later 3\,s readout version (\texttt{3s\_v1}), as shown in Figure~\ref{fig:calibepoch}.
+After the DP2 data taking period, we switched to a slightly different sequencer (\texttt{3s\_v2}). Despite the fact that no data in DP2 were collected with the camera operating under the \texttt{3s\_v2}
 sequencer, all the calibrations and metrics shown in this paper were derived with the \texttt{3s\_v2} sequencer since it shows the current on-sky performance of the LSSTCam and the current state of calibration and ISR.
 We will discuss the differences between these sequencers and their impact on the camera performance in the Discussion (Section~\ref{sec:discussion:sequencer}).
 
@@ -53,7 +53,7 @@ We will discuss the differences between these sequencers and their impact on the
     \centering
     \includegraphics[width=0.75\textwidth]{figures/calibration-epochs-timeline.pdf}
     \caption{Timeline of the observing periods and calibration epochs for LSSTCam during commissioning and pre-survey operations included in DP2.
-    The timeline begins with LSSTCam going on-sky on 2025 April 15; the first science data included in DP2 was taken on 2025 April 24.
+    The timeline begins with LSSTCam going on-sky on 2025 April 15; the first science data included in DP2 were taken on 2025 April 24.
     DP2 science data are separated into calibration epochs, which are set by changes to the CCD operating mode (sequencer) or by power cycles for maintenance.
     Blue boxes mark the interval covered by each calibration epoch and are labeled with the sequencer in use: epoch~1 (from 2025 April 24, \texttt{2s\_v30}), epoch~2 (2025 July 3 to September 21, \texttt{3s\_v1}), and epoch~3 (from 2025 October 24, \texttt{3s\_v1}).
     Epoch~4 (from 2026 January 26, \texttt{3s\_v2}) follows the DP2 data cutoff on 2026 January 6.
@@ -73,13 +73,13 @@ We built this model through electro-optical characterization on the laboratory t
 The model also sets the structure of the calibration and instrument signature removal (ISR) pipeline.
 Each artifact enters at a specific point along the signal chain, so ISR removes them in the reverse order.
 It starts with the last effect imposed, at digitization, and ends with the effects that act on the charge in the silicon.
-Each step therefore relies on a physical model effect itself.
+Each step therefore relies on a physical model of the effect itself.
 Figure~\ref{fig:detector-boxes} shows where each artifact enters the chain, from the detector to the REB.
 
 \begin{figure*}[t]
     \centering
     \includegraphics{figures/calibration_boxes_detector_model.pdf}
-    \caption{Photon transfer and data-acquisition model for the LSSTCam detectors and electronic readout board (REB), containing the 18-bit analog-to-digital converter (ADC) at the end of the readout chain \citep{SITCOMTN-086}.
+    \caption{Photon transfer and data-acquisition model for the LSSTCam detectors and readout electronics board (REB), containing the 18-bit analog-to-digital converter (ADC) at the end of the readout chain \citep{SITCOMTN-086}.
     Instrumental effects seen in images are shown as dashed boxes; arrows indicate where each effect enters the chain.
     Low-signal non-linearities in LSSTCam's detector response have been observed, but their origin is not yet established; that contribution appears as a disconnected box.}
     \label{fig:detector-boxes}
@@ -88,17 +88,19 @@ Figure~\ref{fig:detector-boxes} shows where each artifact enters the chain, from
 We consider effects that enter the signal chain as soon as the photon enters the silicon detector, where incident photons are converted to electrons that collect in the potential wells of pixels.
 During the integration of an exposure, dark current adds charge that is thermally generated rather than photo-generated \citep{2024SPIE13096E..1SR}, and the brighter-fatter effect redistributes incoming charge to neighboring pixels as the wells fill \citep{2014JInst...9C3048A, 2024PASP..136d5003B}.
 Additionally, changes in dopant concentration throughout the silicon bulk cause lateral electric fields that deflect the path of electrons as they drift to the potential wells, producing a fixed pattern of astrometric distortion called ``tree rings''.
-At the reddest wavelengths, mainly in the $z$ and $y$ bands, light reflects off the surfaces of the 100\,$\mu$m-thick sensors before it is absorbed, and the resulting thin-film interference produces a quasi-periodic pattern of bright and dark fringes whose amplitude and phase depend on the spectrum of the incident light \citep{2023PASP..135c4503G}.
+At the reddest wavelengths, mainly in the $z$- and $y$-bands, light reflects off the surfaces of the 100\,$\mu$m-thick sensors before it is absorbed, and the resulting thin-film interference produces a quasi-periodic pattern of bright and dark fringes whose amplitude and phase depend on the spectrum of the incident light \citep{2023PASP..135c4503G}.
 
 When the integration stops, the readout process begins, and the charge packets are then shifted down the columns by parallel transfer and along the serial register toward the amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) or caught in serial traps in the output register and released at a later time \citep{2021JATIS...7d48002S}.
 
 At the output node of the detector's chip, the on-chip amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried as a voltage rather than electrons.
 The signal then passes through cabling to the REB, where crosstalk couples signals between neighboring amplifiers and across the detector midline \citep{2015JInst..10C5010O}, after which the analog signal processing integrated circuit (ASPIC) applies a second, temperature-dependent gain ($g_2$).
 The dual-slope integrator then samples each pixel twice, once at the reset level and once at the signal level, and outputs their difference scaled by a third gain, $g_3$ \citep{SITCOMTN-086}.
-After this analog processing, the bias injection stage adds a clock-injected offset, which produces the 2D bias structure and the bias ``wave'' \citep{2026arXiv260631806M}.
+Two distinct electronic offsets are added to the signal along this chain, and we keep them separate (Figure~\ref{fig:detector-boxes}).
+The clock-injected offset is an unintended signal: transitions of the parallel and serial clocks couple into the video signal near the output amplifier, adding an offset of up to $\pm10$k ADU that depends on position in the readout sequence and produces the 2D bias structure and the bias ``wave'' \citep{2026arXiv260631806M}.
+Bias injection, by contrast, is a deliberate stage of the REB: after the dual-slope integrator, a fixed DC pedestal of $\sim$10--20k ADU is added so that the signal, including negative excursions from noise and the clock-injected offset, stays within the input range of the ADC.
 Finally, the analog-to-digital converter (ADC) maps the analog signal to digitized counts, but it introduces non-linearities in the response at high, mid, and low signal levels \citep{RTN-055}.
 
 The overall gain $g$ describes the net conversion from electrons to digital ADU.
-All together, the signal processing chain can be summarized as a change of units of the image from electrons to counts.
+Altogether, the signal processing chain can be summarized as a change of units of the image from electrons to counts.
 Detector artifacts along the chain make this conversion ill-defined.
 The goal of ISR is to recover the true incident signal by undoing these effects in reverse order, each in its native units.

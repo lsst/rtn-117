@@ -17,7 +17,7 @@ Science users should treat anomalously bright detections/extended objects near d
 \paragraph{Residual non-linearity wiggles}
 The double-spline non-linearity model (\S\ref{sec:calibration-production:linearity}) removes the dominant signal-dependent departure from linear response, but small quasi-oscillatory residuals remain as a function of signal level.
 They appear as low-amplitude, signal-dependent structure in linearized images.
-These ``wiggles'' are irregular, clearly observed beyond noise fluctuations, and they do not correlate with measured properties of the input flat-field images (e.g. time, temperature) or with channel on a detector or across the focal plane.
+These ``wiggles'' are irregular, clearly observed beyond noise fluctuations, and they do not correlate with measured properties of the input flat-field images (e.g., time, temperature) or with channel on a detector or across the focal plane.
 
 \paragraph{Differential non-linearity (DNL)}
 The DP2 linearizer corrects average amplifier non-linearity but does not yet apply a full low-signal differential non-linearity correction.
@@ -33,8 +33,8 @@ Improved vignetting models, informed by larger calibration datasets and cross-ch
 The BFE is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
 Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{2024PASP..136d5003B}.
 The electrostatic BFE model used in DP2 (\S\ref{sec:calibration-production:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
-Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for $u$ through $i$ bands are approximately consistent as most light in those bands converts to photoelectrons within the first few microns.
-Separate calibrations are appropriate for $z$- and $y$-band light, which typically  convert far deeper into the silicon.
+Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for $u$ through $i$ bands are approximately consistent, as most light in those bands converts to photoelectrons within the first few microns.
+Separate calibrations are appropriate for $z$- and $y$-band light, which typically convert far deeper into the silicon.
 Boundary-shift calibrations can be color-corrected by assuming a flat incident spectral energy distribution in each filter band and a depth-conversion model in silicon.
 These corrections were not enabled in DP2 because validation was incomplete, but they are expected for DR1.
 Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.
@@ -49,7 +49,7 @@ Residual fringe structure is visible at low surface brightness in $z$- and $y$-b
 Corrections based on their fringing models are under development, so users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
 
 \subsection{Calibration Sensitivity to Camera Sequencer} \label{sec:discussion:sequencer}
-Because many instrument signatures depend on the electronic configuration of the sensor and the timing of the readout, therefore a change to the sequencer can invalidate calibration products built under the previous one.
+Because many instrument signatures depend on the electronic configuration of the sensor and the timing of the readout, a change to the sequencer can invalidate calibration products built under the previous one.
 \citet{2026arXiv260631806M} describe how the LSSTCam sequencer has evolved since the camera arrived at the summit.
 The most significant on-sky change was the move to a more relaxed total focal plane readout time from 2\,s to 3\,s.
 The extra time was spent on a longer per-row readout interval, while the other sequencer parameters tuned during laboratory testing were left unchanged.
@@ -58,10 +58,10 @@ This lowered the read noise of the E2V sensors by about 0.5\,e$^-$, while the IT
 DP2 includes science data taken under two sequencers: the original 2\,s \texttt{2s\_v30} sequencer (epoch~1) and the \texttt{3s\_v1} sequencer (epochs~2 and 3; Figure~\ref{fig:calibepoch}).
 Each sequencer required its own set of calibrations.
 The move to 3\,s readout changed the read noise and bias structure measured in the overscan, and it also changed the size of the crosstalk signal, so the crosstalk coefficients had to be measured again (\S\ref{sec:calibration-production:xtalk}).
-A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on January 6, 2026.
+A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on 2026 January 6.
 Throughout DP2, detector~101 (R23\_S02) showed signal-dependent correlated noise.
 This noise interfered with the photon transfer curve calibration (\S\ref{sec:calibration-production:ptc}) and with the measurement of both gain and read noise for that detector.
 The correlated noise disappeared with the move to the \texttt{3s\_v2} sequencer.
 No \texttt{3s\_v2} data or calibrations are included in the DP2 release, but \texttt{3s\_v2} is the sequencer used for survey operations from now on.
 For that reason, the calibration products shown in this paper are the \texttt{3s\_v2} products.
-The algorithms are the same for all sequencers; only the input exposures and the resulting calibration products differ in.
+The algorithms are the same for all sequencers; only the input exposures and the resulting calibration products differ.

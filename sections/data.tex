@@ -1,11 +1,11 @@
 \section{Calibration System (CalSys)}\label{sec:calsys}
 Each instrumental signature imprinted on the data along the photon transfer chain (Figure~\ref{fig:detector-boxes}) is characterized by a dedicated set of calibration exposures, which we use to build the calibration products that ISR applies to remove it.
-Calibration campaigns produce zero-second bias frames, dark exposures and flat fields to characterize spatially static image artifacts and a set of flat fields taken over a wide range of illumination levels to characterize signal-dependent effects.
+Calibration campaigns produce zero-second bias frames, dark exposures, and flat fields to characterize spatially static image artifacts and a set of flat fields taken over a wide range of illumination levels to characterize signal-dependent effects.
 We also produce images with projected spot patterns to characterize the image response to focused and high-contrast light.
-The quality and reproducibility of these products depends both on the illumination hardware and on our control of the camera and calibration systems.
+The quality and reproducibility of these products depend both on the illumination hardware and on our control of the camera and calibration systems.
 
-In this section we describe the calibration systems used to acquire these data in the dome during commissioning (\S\ref{sec:calsys}).
-There are two calibration systems that will be used continuously throughout the LSST, the flat-field illuminator and the collimated beam projector.
+In this section we describe the calibration systems used to acquire these data in the dome during commissioning.
+There are two calibration systems that will be used continuously throughout the LSST: the Flat-Field Illuminator and the Collimated Beam Projector.
 
 \subsection{Flat-Field Illuminator}\label{sec:calsys:flat-field-illuminator}
 
@@ -16,19 +16,19 @@ The physical architecture of the flat-field system is driven by the fast ($f/1.2
 of the Simonyi Survey Telescope, which demands exceptional control over both the angular and spatial
 uniformity of the calibration wavefront \citep{TSTN-060}. This system aims to satisfy a photometric
 precision of 5 mmag in repeatability and 10 mmag in spatial
-uniformity across the field-of-view. The system directs light toward a
-large 10.27-meter diameter Lambertian calibration screen that is tilted to 23
+uniformity across the field of view. The system directs light toward a
+large 10.27-meter-diameter Lambertian calibration screen that is tilted to 23
 degrees to align precisely with the optical axis of the telescope. Because the calibration hardware must
 co-rotate dynamically with the observatory dome during operations, the primary illumination
 sources, environmental enclosures, and projection optics are mounted directly onto the dome structures
-rather than a static mount \citep{TSTN-057}.
+rather than onto a static mount \citep{TSTN-057}.
 
 To deliver both broadband and monochromatic illumination during the LSST, the system integrates two
 independent illumination subsystems within a single centralized optical projector, positioned at the
-geometric center of the calibration screen structure. Broadband ``whitelight'' illumination is provided
+geometric center of the calibration screen structure. Broadband ``white-light'' illumination is provided
 by a specialized module featuring a collection of 10 high-power LEDs selected to span the complete
-$ugrizy$ filter passbands, with one LED within the $u$ passband with the other five passbands each
-getting coverage from two LEDs. For monochromatic calibration, the system incorporates a tunable laser
+$ugrizy$ filter passbands, with one LED within the $u$ passband and two LEDs within each of the
+other five passbands. For monochromatic calibration, the system incorporates a tunable laser
 system that provides continuous wavelength coverage from 300 to 2600 nm at a 1 kHz pulse rate. This
 laser can deliver narrow tuning steps between 0.05 and 1 nm and a spectral line width under 1 nm FWHM \citep{TSTN-065}.
 
