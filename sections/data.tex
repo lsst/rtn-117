@@ -1,35 +1,21 @@
 \section{Calibration System (CalSys)}\label{sec:calsys}
-Each instrumental effect in the photon transfer chain (Figure~\ref{fig:detector-boxes}) is characterized by a dedicated set of calibration exposures, from which we build the calibration data products for each one that applied during ISR.
-Calibration campaigns produce zero-second bias frames and dark exposures measure the electronic offset and dark current; pairs of flat fields taken over a wide range of illumination levels constrain the photon transfer curve, gain, non-linearity, and brighter-fatter effect; and projected spot patterns isolate crosstalk between readout channels.
+Each instrumental signature imprinted on the data along the photon transfer chain (Figure~\ref{fig:detector-boxes}) is characterized by a dedicated set of calibration exposures, which we use to build the calibration products that ISR applies to remove it.
+Calibration campaigns produce zero-second bias frames, dark exposures and flat fields to characterize spatially static image artifacts and a set of flat fields taken over a wide range of illumination levels to characterize signal-dependent effects.
+We also produce images with projected spot patterns to characterize the image response to focused and high-contrast light.
 The quality and reproducibility of these products depends both on the illumination hardware and on our control of the camera and calibration systems.
 
-There are two calibration systems that will be used continuously throughout the LSST (the flat-field illuminator and the collimated beam projector).
-In this section we first describe the calibration systems used to acquire these data in the dome during commissioning (\S\ref{sec:calsys}).
-% We then describe how the DP2 data are divided into calibration epochs, defined by changes to the CCD sequencer and by power cycles of the camera, each of which requires its own set of calibrations (\S\ref{sec:discussion:sequencer}).
-
-Here we discuss the calibration system hardware and performance available for generating the calibration datasets needed as input to the ISR pipeline \citep{TSTN-066}.
-% \subsection{Camera Calibration Optical Bench}\label{sec:calsys:ccob}
-
-% To create optical scenes for characterization, the Camera is placed in-line with an optical scene projector called the Camera Calibration Optical Bench (CCOB) \citep{2024SPIE13103E..0WU}.
-% The CCOB-wide beam is designed to project a uniform monochromatic light source onto the focal plane, thanks to one of six LEDs, each corresponding to a central wavelength in the LSST filter bandpass.\todo{Can we quantify ``uniform'' and ``monochromatic'' here?, e.g. the achieved illumination uniformity across the focal plane (percent peak-to-peak or RMS), and the LED central wavelengths with their FWHM.}
-% In-lab tests with the CCOB are described in \textcolor{red}{here add citation}, the so-called ``Run 7'' was the final campaign of testing of LSSTCam at SLAC National Accelerator Laboratory,
-% calibrations produced during that run were used as the initial LSSTCam on-sky observations.
-% %Light is produced by , is controlled by a custom LED driver and fed into an integrating sphere. The light from the integrating sphere is projected onto the focal plane with a minimal ND filter (10\%) attached to a C-mount lens with an adjustable f/stop. The CCOB-wide beam was used in run 6 and run 7.
-% %\textbf{I mention run 6 and run 7 here - it is not properly introduced. Is it within scope to mention the EO-testing run at the Rubin Observatory L3 CR?}
-% %One difference between run 6 and run 7 was that the f/stop of the lens was changed from 2.6 to 1.6 (fully open). This was done to try to reduce the effect of the `weather' and the `CMB pattern' two effects that we found in Run 6 at SLAC, and were found to be due to our projection setup (\citet{2024arXiv241113386B}). While changing the f/stop  did reduce the weather pattern, it also caused a much steeper illumination roll-off across the focal plane. We evaluated the weather pattern and illumination roll-off relative to Run 6.
-% %To reduce the effects of the `weather' and `CMB' but retain uniform illumination across the focal plane, we installed a Lambertian diffuser to the CCOB-wide beam for Run 7. The diffuser used is a $60^o$ diffusing angle unmounted sheet from Edmunds Optics. We found that the diffuser greatly reduced the `weather', eliminated the CMB pattern, more uniformly illuminated the focal plane, with a penalty of decreasing the overall illumination by roughly 35\%. The diffuser was installed for all run 7 record runs using the CCOB Wide Beam.
-
-% \textbf{I am not sure how much we want to talk about the CCOB here. If there is a specific focus (qualifying the CCDs before integration), I can revisit this}
+In this section we describe the calibration systems used to acquire these data in the dome during commissioning (\S\ref{sec:calsys}).
+There are two calibration systems that will be used continuously throughout the LSST, the flat-field illuminator and the collimated beam projector.
 
 \subsection{Flat-Field Illuminator}\label{sec:calsys:flat-field-illuminator}
 
 The Flat-Field Illuminator is designed to provide a stable, uniform, and well-characterized
 illumination required to measure the absolute and relative instrumental responses of the LSST Camera.
+
 The physical architecture of the flat-field system is driven by the fast ($f/1.2$) optical configuration
 of the Simonyi Survey Telescope, which demands exceptional control over both the angular and spatial
-uniformity of the calibration wavefront \citep{TSTN-060}.
-
-This system aims to satisfy a photometric precision of 5 mmag in repeatability and 10 mmag in spatial
+uniformity of the calibration wavefront \citep{TSTN-060}. This system aims to satisfy a photometric
+precision of 5 mmag in repeatability and 10 mmag in spatial
 uniformity across the field-of-view. The system directs light toward a
 large 10.27-meter diameter Lambertian calibration screen that is tilted to 23
 degrees to align precisely with the optical axis of the telescope. Because the calibration hardware must

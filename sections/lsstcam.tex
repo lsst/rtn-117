@@ -3,7 +3,7 @@
 The design of the LSSTCam \cite{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
 
 % Focal plane
-The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 CCDs used for science imaging, organized into 3$\times$3 rafts, in a focal plane mosaic presented in \citet{CTN-001}.
+The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 thick, fully-depleted charge-coupled devices (CCDs) used for science imaging, organized into 3$\times$3 rafts (described in more detail in \citet{CTN-001}).
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
 The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
 
@@ -20,7 +20,7 @@ The corners of the mosaic contain two CCDs for guiding and one split-wavefront C
 LSSTCam CCDs are read out in 16 channels, each with their own readout electronics and signal amplifiers.
 Each channel is 2048 pixels high and 512 pixels wide for E2V and 2048 pixels high and 576 pixels wide for ITL sensors.
 Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
-Each row ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (Table~\ref{tab:amp-geometry}).
+During readout, eachrow ends with extra serial overscan columns, and the image ends with extra parallel overscan rows (summarized in Table~\ref{tab:amp-geometry}).
 
 \begin{table}[t]
     \centering
@@ -49,15 +49,32 @@ After the DP2 data taking period, we switched to a slightly different sequencer 
 sequencer, all the calibrations and metrics shown in this paper were derived with the \texttt{3s\_v2} sequencer since it shows the current on-sky performance of the LSSTCam and the current state of calibration and ISR.
 We will discuss the differences between these sequencers and their impact on the camera performance in the Discussion (Section~\ref{sec:discussion:sequencer}).
 
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/calibration-epochs-timeline.pdf}
+    \caption{Timeline of the observing periods and calibration epochs for LSSTCam during commissioning and pre-survey operations included in DP2.
+    The timeline begins with LSSTCam going on-sky on 2025 April 15; the first science data included in DP2 was taken on 2025 April 24.
+    DP2 science data are separated into calibration epochs, which are set by changes to the CCD operating mode (sequencer) or by power cycles for maintenance.
+    Blue boxes mark the interval covered by each calibration epoch and are labeled with the sequencer in use: epoch~1 (from 2025 April 24, \texttt{2s\_v30}), epoch~2 (2025 July 3 to September 21, \texttt{3s\_v1}), and epoch~3 (from 2025 October 24, \texttt{3s\_v1}).
+    Epoch~4 (from 2026 January 26, \texttt{3s\_v2}) follows the DP2 data cutoff on 2026 January 6.
+    The calibrations shown in this paper are the most recent (\texttt{3s\_v2}) set, even though no data from this epoch were released in DP2.
+    The dotted segment marks an engineering and maintenance downtime between 2025 September 21 and October 24 that is not covered by a calibration epoch.
+    The feature freeze for v30 of the LSST Data Management (DM) Science Pipelines software was 2025 December 3.}
+    \label{fig:calibepoch}
+\end{figure*}
+
 \subsection{Physical Model of Photon Transport in LSSTCam CCDs} \label{sec:lsstcam:detector-model}
 
-The physical properties of the detectors and readout electronics imprint instrumental signatures that cause each recorded pixel value to depart from the incident signal.
-Our model of the conversion of photons to charge and the subsequent digitization, was established through electro-optical characterization on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope during commissioning.
-\citet{2024SPIE13096E..1SR} gives a detailed account of system characterization work and results from the laboratory campaigns.
+Instrumental signatures imprinted by the detectors and readout electronics cause each recorded pixel value to depart from the incident signal.
+Removing these signatures requires a model of the full signal chain, which describes how photons are converted to charge, how that charge is transferred and amplified, and how the resulting voltage is digitized.
+We built this model through electro-optical characterization on the laboratory test stand at SLAC National Accelerator Laboratory, at the summit, and on the telescope during commissioning.
+\citet{2024SPIE13096E..1SR} give a detailed account of the laboratory campaigns and their results.
 
-Calibration and instrument signature removal (ISR) tasks are organized as a pipeline based on our current model of the detector physics since instrument artifacts are removed in the reverse chronological order in which they compound along the signal chain.
-The algorithms therefore need a clear picture of the signal chain, as well as physical models of each systematic transformation that applies to the signal in each step.
-Figure \ref{fig:detector-boxes} depicts where artifacts enter in this chain from the detector to the Readout Board (REB).
+The model also sets the structure of the calibration and instrument signature removal (ISR) pipeline.
+Each artifact enters at a specific point along the signal chain, so ISR removes them in the reverse order.
+It starts with the last effect imposed, at digitization, and ends with the effects that act on the charge in the silicon.
+Each step therefore relies on a physical model effect itself.
+Figure~\ref{fig:detector-boxes} shows where each artifact enters the chain, from the detector to the REB.
 
 \begin{figure*}[t]
     \centering
@@ -68,13 +85,20 @@ Figure \ref{fig:detector-boxes} depicts where artifacts enter in this chain from
     \label{fig:detector-boxes}
 \end{figure*}
 
-The chain begins in the silicon, where incident photons are converted to electrons that collect in the pixel potential wells.
-Two effects enter here: dark current adds charge that is thermally generated rather than photo-generated, and the brighter-fatter effect redistributes charge to neighboring pixels as the wells fill.
-Because both act on the charge before it is moved, they are the first effects in the chain, and the last to be corrected.
-The charge packets are then shifted down the columns by parallel transfer and along the serial register toward the amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) and serial trapping.
-This shifting precedes the amplifier, so deferred charge is still present in the image in units of electrons.
-At the output node, the on-chip amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried in volts rather than electrons.
-The signal then passes through the cabling to the REB, where crosstalk couples signals between neighboring amplifiers and across the midline, after which the ASPIC applies a second, temperature-dependent gain ($g_2$).
-Non-linearities at high, mid, and low signal levels enter at different points along this analog path, and the dual-slope integrator, with a third gain $g_3$, forms the voltage difference between the reset and signal levels.
-Only after this analog processing is a clock-injected offset added by the bias injection stage, which produces the 2D bias structure and the bias ``wave'', and the signal is finally digitized by the ADC, whose differential non-linearity (DNL) is the last effect imposed.
+We consider effects that enter the signal chain as soon as the photon enters the silicon detector, where incident photons are converted to electrons that collect in the potential wells of pixels.
+During the integration of an exposure, dark current adds charge that is thermally generated rather than photo-generated \citep{2024SPIE13096E..1SR}, and the brighter-fatter effect redistributes incoming charge to neighboring pixels as the wells fill \citep{2014JInst...9C3048A, 2024PASP..136d5003B}.
+Additionally, changes in dopant concentration throughout the silicon bulk cause lateral electric fields that deflect the path of electrons as they drift to the potential wells, producing a fixed pattern of astrometric distortion called ``tree rings''.
+At the reddest wavelengths, mainly in the $z$ and $y$ bands, light reflects off the surfaces of the 100\,$\mu$m-thick sensors before it is absorbed, and the resulting thin-film interference produces a quasi-periodic pattern of bright and dark fringes whose amplitude and phase depend on the spectrum of the incident light \citep{2023PASP..135c4503G}.
+
+When the integration stops, the readout process begins, and the charge packets are then shifted down the columns by parallel transfer and along the serial register toward the amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) or caught in serial traps in the output register and released at a later time \citep{2021JATIS...7d48002S}.
+
+At the output node of the detector's chip, the on-chip amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried as a voltage rather than electrons.
+The signal then passes through cabling to the REB, where crosstalk couples signals between neighboring amplifiers and across the detector midline \citep{2015JInst..10C5010O}, after which the analog signal processing integrated circuit (ASPIC) applies a second, temperature-dependent gain ($g_2$).
+The dual-slope integrator then samples each pixel twice, once at the reset level and once at the signal level, and outputs their difference scaled by a third gain, $g_3$ \citep{SITCOMTN-086}.
+After this analog processing, the bias injection stage adds a clock-injected offset, which produces the 2D bias structure and the bias ``wave'' \citep{2026arXiv260631806M}.
+Finally, the analog-to-digital converter (ADC) maps the analog signal to digitized counts, but it introduces non-linearities in the response at high, mid, and low signal levels \citep{RTN-055}.
+
 The overall gain $g$ describes the net conversion from electrons to digital ADU.
+All together, the signal processing chain can be summarized as a change of units of the image from electrons to counts.
+Detector artifacts along the chain make this conversion ill-defined.
+The goal of ISR is to recover the true incident signal by undoing these effects in reverse order, each in its native units.
