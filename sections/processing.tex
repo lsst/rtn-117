@@ -12,10 +12,10 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
 
 \begin{figure*}[t]
     \centering
-    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.52\textwidth}{(a) E2V, raw}
-              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.48\textwidth}{(b) E2V, post-ISR}}
-    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.52\textwidth}{(c) ITL, raw}
-              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.48\textwidth}{(d) ITL, post-ISR}}
+    \gridline{\fig{figures/isr_2026010700038_det45_raw.pdf}{0.515\textwidth}{(a) E2V, raw}
+              \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.475\textwidth}{(b) E2V, post-ISR}}
+    \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.515\textwidth}{(c) ITL, raw}
+              \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.475\textwidth}{(d) ITL, post-ISR}}
     \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
     The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
     The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
@@ -540,12 +540,10 @@ The ``PTC rolloff'' is the signal level where $C_{00}^{\mathrm{prelim.}}(\mu)$ a
 With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{2019A&A...629A..36A} (their Eq.~20):
 \begin{equation}
     \begin{aligned}
-    C_{ij}^{\mathrm{model}}(\mu) = \frac{\mu}{g} \Bigl[ \delta_{i0}\delta_{j0}
-      &+ a_{ij}\mu g \\
-      &+ \frac{2}{3}\left([\mathbf{a}\otimes\mathbf{a} + \mathbf{ab}]_{ij}\right)(\mu g)^{2} \\
-      &+ \frac{1}{6}\left(2\mathbf{a}\otimes\mathbf{a}\otimes\mathbf{a} + 5\mathbf{a}\otimes\mathbf{ab}\right)_{ij}(\mu g)^{3} \\
-      &+ \mathcal{O}[(\mu g)^4]
-    \Bigr] + \frac{n_{ij}}{g^2},
+    C_{ij}^{\mathrm{model}}(\mu) &= \frac{\mu}{g} \Bigl[ \delta_{i0}\delta_{j0} + a_{ij}\mu g \\
+      &\quad + \frac{2}{3}\left([\mathbf{a}\otimes\mathbf{a} + \mathbf{ab}]_{ij}\right)(\mu g)^{2} \\
+      &\quad + \frac{1}{6}\left(2\mathbf{a}\otimes\mathbf{a}\otimes\mathbf{a} + 5\mathbf{a}\otimes\mathbf{ab}\right)_{ij}(\mu g)^{3} \\
+      &\quad + \mathcal{O}[(\mu g)^4] \Bigr] + \frac{n_{ij}}{g^2},
     \end{aligned}
     \label{eq:cov_model}
 \end{equation}
@@ -586,6 +584,23 @@ Brighter point sources therefore appear wider in the recorded images.
 This electrostatic effect reduces to an effective change in pixel area and introduces correlations between nearby pixel values.
 The effect is intrinsic to thick CCDs and can significantly bias point-spread-function (PSF) photometry and shape measurement \citep{2024PASP..136d5003B}.
 
+\begin{deluxetable}{ll}[t!]
+    \tablecaption{Parameter Priors for the Electrostatic BFE Model Fit\label{tab:bf-electrostatic-fit-priors}}
+    \tablehead{
+        \colhead{Parameter} & \colhead{Prior}
+    }
+    \startdata
+        Si thickness, $t$ ($\mu$m)        & $100$ (fixed) \\
+        Pixel size, $p$ ($\mu$m)         & $10$ (fixed) \\
+        Charge cloud height, $z_q$ ($\mu$m)      & $0 \leq z_q \leq t/2$ \\
+        Charge cloud length, $a$ ($\mu$m)        & $10^{-5} \leq a \leq 0.35\,p$ \\
+        Charge cloud width, $b$ ($\mu$m)         & $10^{-5} \leq b \leq 0.35\,p$ \\
+        Horiz.\ well vertex height, $z_{sh}$ ($\mu$m) & $0 \leq z_{sh} \leq t/2$ \\
+        Vert.\ well vertex height, $z_{sv}$ ($\mu$m) & $0 \leq z_{sv} \leq t/2$ \\
+    \enddata
+    \tablecomments{Priors on the fit parameters are informed by pixel-level simulations of the electric fields in these pixels \citep{2017JInst..12C3091L}. The potential well vertices refer to the heights above the front side of the CCD of the saddle points in the electric field that define the pixel boundaries in the vertical (0, 1) and horizontal (1, 0) directions. The electrostatic model assumes that the stored charge cloud in the sensor takes the form of a flat, rectangular sheet of charge with length ($a$) and width ($b$). The inequality constraints $z_{sh} > z_q$, $z_{sv} > z_q$ are enforced during optimization, which is true in the unsaturated signal level regime.}
+\end{deluxetable}
+
 The BFE has been extensively characterized for LSSTCam by laboratory and in-dome commissioning measurements \citep{2024PASP..136d5003B}.
 The strength of the effect is anisotropic ($a_{01}/a_{10} \sim 3$), long-ranged ($\sim 10$~px), and wavelength dependent.
 It is also about twice as strong in the E2V-family detectors as in ITL-family detectors.
@@ -602,22 +617,6 @@ For processing raw images from DP2, we use the \citet{2023A&A...670A.118A} algor
 % Simulations and empirical modeling indicate that most photons in $u$ through $i$ bands convert within the top few microns of silicon, while the BFE influence on charge drifting to the pixel bottom occurs primarily in the last several microns.
 % Chromatic effects are therefore likely negligible for photons with wavelengths across the LSST bandpasses.
 
-\begin{deluxetable}{ll}[t!]
-    \tablecaption{Parameter Priors for the Electrostatic BFE Model Fit\label{tab:bf-electrostatic-fit-priors}}
-    \tablehead{
-        \colhead{Parameter} & \colhead{Prior}
-    }
-    \startdata
-        Si thickness, $t$ ($\mu$m)        & $100$ (fixed) \\
-        Pixel size, $p$ ($\mu$m)         & $10$ (fixed) \\
-        Charge cloud height, $z_q$ ($\mu$m)      & $0 \leq z_q \leq t/2$ \\
-        Charge cloud length, $a$ ($\mu$m)        & $10^{-5} \leq a \leq 0.35\,p$ \\
-        Charge cloud width, $b$ ($\mu$m)         & $10^{-5} \leq b \leq 0.35\,p$ \\
-        Potential well vertex height,\\horizontal $z_{sh}$ ($\mu$m)    & $0 \leq z_{sh} \leq t/2$ \\
-        Potential well vertex height,\\vertical $z_{sv}$ ($\mu$m)    & $0 \leq z_{sv} \leq t/2$ \\
-    \enddata
-    \tablecomments{Priors on the fit parameters are informed by pixel-level simulations of the electric fields in these pixels \citep{2017JInst..12C3091L}. The potential well vertices refer to the heights above the front side of the CCD of the saddle points in the electric field that define the pixel boundaries in the vertical (0, 1) and horizontal (1, 0) directions. The electrostatic model assumes that the stored charge cloud in the sensor takes the form of a flat, rectangular sheet of charge with length ($a$) and width ($b$). The inequality constraints $z_{sh} > z_q$, $z_{sv} > z_q$ are enforced during optimization, which is true in the unsaturated signal level regime.}
-\end{deluxetable}
 
 Calibration of the BFE using this algorithm takes the form of modeling a charge cloud at the bottom of a pixel and computing
 how the effective areas of nearby pixels would be expected to change electrostatically in response. It adjusts some geometric parameters (summarized in Table~\ref{tab:bf-electrostatic-fit-priors}) and solves
