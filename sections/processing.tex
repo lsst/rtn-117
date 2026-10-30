@@ -372,7 +372,7 @@ To better characterize this, it makes sense to perform a spline fit on each ampl
 
 We can distinguish an \emph{absolute} non-linearity in a single reference amplifier on a detector and the \emph{relative} non-linearity of other amplifiers to that reference amplifier, the process for which is summarized in Algorithm~\ref{alg:linearity-double-spline} and illustrated in Figure~\ref{fig:linearity-abs-rel}.
 After choosing a reference amplifier and a reference exposure, we do (1) a relative spline fit on every other amplifier using the variation of its mean flat-field signal $\mu$ relative to the reference amplifier and to the $\mu$ in a single reference exposure, and then (2)
-an absolute spline fit on the reference amplifier using the usual fit of $\mu$ versus $\Delta t$.
+an absolute spline fit on the reference amplifier using a fit of measured $\mu$ versus $\Delta t$.
 Every amplifier on a detector has a shared absolute spline fit based on the reference amplifier for that detector and a relative spline fit computed relative to a reference amplifier and a reference exposure ($S_{\mathrm{rel}}(\mu) = 0$ for the reference amplifier).
 
 \begin{algorithm}[H]
