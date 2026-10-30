@@ -1,0 +1,91 @@
+\section{Verification, Acceptance, and Certification} \label{sec:verify-accept-certify}
+
+Calibrations applied to survey images undergo an organized official process to verify their quality, approve them, and deploy them to the community for processing. This open, controlled, and documented procedure is designed to meet the needs of the rapid data rates and survey cadence of the LSST and the importance of calibration to all downstream science with LSST.
+As these calibration products are used for all parts of the survey, approving updates is done via an internal review that is open to any member of the project, to ensure that all views are heard before processing uses them.
+
+All data products, including calibrations, are managed by the data \texttt{butler}, an abstraction middleware layer that mediates all access to data. It contains a registry database that records the metadata and provenance of every dataset, allowing pipelines to retrieve and store data by dataset type and identifying labels rather than by file path or storage format.
+Datasets in a butler repository are organized into named collections, and it is through these collections that calibrations are associated with the exposures they apply to, made publicly available, and tracked over the length of the survey \citep[see][for details]{2022SPIE12189E..11J}.
+
+This section details the steps used to verify, accept, and deploy calibration products for use as part of the survey.
+These steps do not preclude users from constructing and using their own set of calibrations, but they ensure that the default set of calibrations is suitable for use.
+Full details about the commands used for these steps and suggestions for a consistent collection naming system are presented in DMTN-222 \citep{DMTN-222}.
+
+% This section defines the quality metrics for calibration products and ISR outputs.
+% Here we define the criteria used to promote products to ``accepted'' and ``certified''.
+
+\subsection{Verification} \label{sec:verify-accept-certify:verification}
+
+\todo{The verification criteria in this subsection are qualitative throughout. They need quantitative pass/fail thresholds and acceptance criteria, along with the values measured for DP2 --- possibly collected in a table.}
+
+After new calibrations have been constructed, they are used to process some set of exposures to show that they correct the various instrument features as expected.
+For simpler calibrations, such as biases and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames to confirm that the residuals are consistent with only the read noise remaining.
+Other calibrations require more analysis, such as applying the BFE correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
+Calibrations that do not pass some tests are not necessarily rejected outright, although those failures should be raised and considered during the acceptance process.
+This is particularly true of tests that examine a property at the amplifier segment level; rejecting a calibration due to a small number of problematic segments is impractical.
+Where calibration construction does not produce a result that passes all of the requirements, we can add to our defect list to exclude regions that have serious issues from further processing.
+
+The current set of tests and the criteria used for acceptance are detailed in DMTN-101, with a brief summary listed in Table~\ref{tab:verification_tests}.
+It is likely that we will expand the list of verification tests calculated for calibrations as our familiarity with the camera and data improves.
+
+\begin{deluxetable*}{llll}[t!]
+    \tablecaption{Brief summary of verification tests.\label{tab:verification_tests}}
+    \tablehead{
+        \colhead{Calibration Product} & \colhead{Quantity} & \colhead{Requirement} &
+        \colhead{Description}
+    }
+    \startdata
+        Bias & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should have no significant signal.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Image stdev\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should not contribute to the image noise.\strut} \\
+        Dark & \parbox[t]{0.17\textwidth}{\raggedright Image stdev with CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should not contribute to the image noise. Cosmic rays should be rejected to prevent them from skewing the calculation.\strut} \\
+    \enddata
+\end{deluxetable*}
+
+% We list (possibly in a table) the automated verification tests for each data product (sanity checks, analysis plots, detailed plots, distributional checks, and science test images) and the thresholds that determine acceptance/rejection of different calibration data products.
+
+\subsection{Acceptance} \label{sec:verify-accept-certify:acceptance}
+
+Once a set of calibrations has been generated and verified, a meeting of the Telescope and Auxiliary Instrumentation Calibration Acceptance Board (TAXICAB) is called to decide if those calibrations should be deployed for use.
+The TAXICAB does not have a fixed membership, and welcomes any member of the project to join to offer opinions and comments on the calibrations presented.
+The goal of this board is to ensure that the decision-making for calibration approval is public and accessible, with the final decisions made by consensus agreement.
+Associated with each TAXICAB meeting is a ``hailing ticket,'' which is used to provide a location for details and artifacts from the generation and verification process.
+These artifacts of the generation and verification process are presented at the TAXICAB meeting, where the attendees can decide whether or not the calibration is sufficient, and whether further tests are needed to determine if the calibration performs as expected.
+A calibration with failures of some of the verification tests is not necessarily excluded, and may be allowed for use based on the significance of the failures, with the TAXICAB making that final decision.
+
+% This section will describe the calibration acceptance process (TAXICAB).
+% Describe how verified products are compared against earlier baselines to reveal regressions or deviations, and how acceptance decisions are documented.
+
+\subsection{Certification} \label{sec:verify-accept-certify:certification}
+% Describe the final certification step in the context of the data ``butler'' and file system storage.
+
+Certification is a butler database operation that adds the datasets comprising a calibration to a CALIBRATION collection, together with the range of observation dates over which that calibration is valid.
+
+\subsection{Distribution} \label{sec:verify-accept-certify:distribution}
+Distribution of LSSTCam calibrations is also a butler database operation. The certified calibration collections are gathered into a single CHAINED collection named \texttt{LSSTCam/calib}, which chains the calibrations from the successive calibration epochs along with their associated validity ranges.
+This calibration collection is synchronized across all data repositories and data facilities used for data production, including the summit facility, the SLAC Shared Scientific Data Facility (S3DF) at the United States Data Facility (USDF), the French Data Facility (FrDF) at CC-IN2P3 in Lyon, and the United Kingdom Data Facility (UKDF).
+This ensures that the same calibrations are applied to the same images regardless of where data production is run and data are served, and it ensures that the Prompt Products data pipeline, which produces the live alert stream, always uses the most up-to-date calibrations.
+Processing data with \texttt{LSSTCam/calib} therefore always applies the calibrations appropriate to each science image, without any manual selection on the part of the user.
+
+\subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
+% Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
+One additional advantage of the verification system is that it provides a way to monitor the state of the camera, and the continuing appropriateness of the calibration products.
+By running the verification tasks on new calibration exposures as they are taken, we can check how well the existing calibrations correct these new exposures.
+Although not running during the DP2 observations and analysis, this verification will be added to the processing performed at the summit, with the metrics calculated from this processing passed to the Sasquatch and Chronograf monitoring system that is used to track other performance quantities.
+This monitoring will allow the health of the camera to be tracked and the generation of new calibrations to be prompted by any observed changes in the metrics over time.
+
+A drift in these metrics showing that the current calibrations no longer describe the instrument within tolerance is one of several triggers for a new calibration epoch (\S\ref{sec:discussion:sequencer}).
+A new epoch, with a complete new set of calibration products, is also started whenever any of the following happens:
+\begin{itemize}
+    \item a change to the sequencer or to any other part of the CCD operating mode (e.g.\ clock voltages or timing);
+    \item a power cycle of the focal plane or the readout electronics, such as during maintenance, which can shift bias levels, gains, and defect populations;
+    \item a hardware intervention on the camera, such as recovering or replacing a detector or readout board.
+\end{itemize}
+Each new set of calibrations then passes through the same verification, acceptance, and certification steps described above.
+
+\subsection{Data Products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
+Describe the output schema, distribution process (exporting/importing, Rucio, and TAXICAB tracking), and user access.
+
+We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
+
+Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
+
+Be sure to mention that header metadata contains information about whether a particular ISR step was applied/not applied and which calibration dataset was used.
