@@ -21,7 +21,7 @@ After new calibrations have been constructed, they are used to process some set 
 For simpler calibrations, such as biases and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames to confirm that the residuals are consistent with only the read noise remaining.
 Other calibrations require more analysis, such as applying the BFE correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
 Calibrations that do not pass some tests are not necessarily rejected outright, although those failures should be raised and considered during the acceptance process.
-This is particularly true of tests that examine a property at the amplifier segment level; rejecting a calibration due to a small number of problematic segments is impractical.
+This is particularly true of tests that examine a property at the amplifier level; rejecting a calibration due to a small number of problematic amplifiers is impractical.
 Where calibration construction does not produce a result that passes all of the requirements, we can add to our defect list to exclude regions that have serious issues from further processing.
 
 The current set of tests and the criteria used for acceptance are detailed in DMTN-101, with a brief summary listed in Table~\ref{tab:verification_tests}.
