@@ -34,9 +34,24 @@ It is likely that we will expand the list of verification tests calculated for c
         \colhead{Description}
     }
     \startdata
-        Bias & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should have no significant signal.\strut} \\
-        & \parbox[t]{0.17\textwidth}{\raggedright Image stdev\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should not contribute to the image noise.\strut} \\
-        Dark & \parbox[t]{0.17\textwidth}{\raggedright Image stdev with CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should not contribute to the image noise. Cosmic rays should be rejected to prevent them from skewing the calculation.\strut} \\
+        All inputs & \parbox[t]{0.17\textwidth}{\raggedright Visual inspection\strut} & \parbox[t]{0.18\textwidth}{\raggedright No stray light or other artifacts\strut} & \parbox[t]{0.39\textwidth}{\raggedright Every input bias, dark, and flat frame is checked by eye. Frames with stray light, light leaks, or other unexpected features are removed before combining.\strut} \\
+        Bias & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should leave no significant signal behind.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Clipped stdev per amplifier\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should not add noise to the image. Enough frames are combined so the effective read noise grows by less than 2.5\%.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Unclipped stdev after CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the clipped stdev\strut} & \parbox[t]{0.39\textwidth}{\raggedright Once cosmic rays are removed, no outlier pixels should remain.\strut} \\
+        Dark & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should fully remove the dark current.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Clipped stdev per amplifier\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should not add noise to the image. As with the bias, the effective read noise should grow by less than 2.5\%.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Unclipped stdev after CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the clipped stdev\strut} & \parbox[t]{0.39\textwidth}{\raggedright Cosmic rays are rejected so they do not skew the result.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Difference of even and odd darks\strut} & \parbox[t]{0.18\textwidth}{\raggedright Mean consistent with 0.0, stdev consistent with dark current and read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright Two darks built from separate halves of the inputs should agree.\strut} \\
+        Defects & \parbox[t]{0.17\textwidth}{\raggedright Normalized flat median and clipped stdev\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 1.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright After masking defects, the remaining pixels should behave normally.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Pixels that vary between flux levels\strut} & \parbox[t]{0.18\textwidth}{\raggedright All present in the defect map\strut} & \parbox[t]{0.39\textwidth}{\raggedright Any pixel that does not respond consistently across flux levels should be masked.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Dark pixels in pocket-pumped flats\strut} & \parbox[t]{0.18\textwidth}{\raggedright All present in the defect map\strut} & \parbox[t]{0.39\textwidth}{\raggedright Charge traps found by pocket pumping should be masked.\strut} \\
+        PTC & \parbox[t]{0.17\textwidth}{\raggedright Gain\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright The gain of each amplifier should be stable over time.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Read noise\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright The read noise of each amplifier should be stable over time.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright PTC turnoff\strut} & \parbox[t]{0.18\textwidth}{\raggedright At least 90{,}000\,e$^-$\strut} & \parbox[t]{0.39\textwidth}{\raggedright Each amplifier should meet the full well requirement.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright BFE coefficient $a_{00}$\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5$\sigma$ of the detector population mean\strut} & \parbox[t]{0.39\textwidth}{\raggedright The coefficient is set by the detector electrostatics and should only change if the operating voltages change.\strut} \\
+        Gain & \parbox[t]{0.17\textwidth}{\raggedright Gain from a flat pair\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright A quick check of the gain between full PTC runs.\strut} \\
+        Linearity & \parbox[t]{0.17\textwidth}{\raggedright Residual nonlinearity\strut} & \parbox[t]{0.18\textwidth}{\raggedright Below 1\% for spline and lookup table, quadratic term below $10^{-6}$\strut} & \parbox[t]{0.39\textwidth}{\raggedright A new linearizer fit to data already corrected by the candidate should find almost nothing left to correct.\strut} \\
+        Crosstalk & \parbox[t]{0.17\textwidth}{\raggedright Median and clipped mean with spots masked\strut} & \parbox[t]{0.18\textwidth}{\raggedright Equal within statistical error\strut} & \parbox[t]{0.39\textwidth}{\raggedright After correction, no crosstalk ghosts should remain around the bright spots.\strut} \\
     \enddata
 \end{deluxetable*}
 
@@ -73,19 +88,5 @@ Although not running during the DP2 observations and analysis, this verification
 This monitoring will allow the health of the camera to be tracked and the generation of new calibrations to be prompted by any observed changes in the metrics over time.
 
 A drift in these metrics showing that the current calibrations no longer describe the instrument within tolerance is one of several triggers for a new calibration epoch (\S\ref{sec:discussion:sequencer}).
-A new epoch, with a complete new set of calibration products, is also started whenever any of the following happens:
-\begin{itemize}
-    \item a change to the sequencer or to any other part of the CCD operating mode (e.g.\ clock voltages or timing);
-    \item a power cycle of the focal plane or the readout electronics, such as during maintenance, which can shift bias levels, gains, and defect populations;
-    \item a hardware intervention on the camera, such as recovering or replacing a detector or readout board.
-\end{itemize}
+A new epoch, with a complete new set of calibration products, is also started after (1) any change to the sequencer or to another part of the CCD operating mode, such as the clock voltages or timing, (2) a power cycle of the focal plane or readout electronics, which can shift bias levels, gains, and defect populations, and (3) any hardware intervention on the camera, such as recovering or replacing a detector or readout board.
 Each new set of calibrations then passes through the same verification, acceptance, and certification steps described above.
-
-% \subsection{Data Products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
-% Describe the output schema, distribution process (exporting/importing, Rucio, and TAXICAB tracking), and user access.
-
-% We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
-
-% Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
-
-% Be sure to mention that header metadata contains information about whether a particular ISR step was applied/not applied and which calibration dataset was used.
