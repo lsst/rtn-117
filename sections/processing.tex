@@ -201,22 +201,22 @@ The source files for these calibrations are stored in the github, and must be im
 Where possible, any precursor files and processing scripts are also retained to ensure that the translation from the original sources to the files used for LSSTCam processing can be replicated.
 These calibrations are either assumed to not change with time (such as the camera geometry or filter transmissions), or are intended as a starting point for further calibration development (such as the initial manual defect lists).
 
-Table \ref{tab:curated_calibrations} lists the curated calibration types that
+Table \ref{tab:curated_calibrations} lists the curated calibration types that were used in DP2 processing, along with a brief description of each.
 
-\begin{deluxetable}{ll}[t!]
+\begin{deluxetable*}{ll}[t!]
     \tablecaption{Curated Calibrations in DP1\label{tab:curated_calibrations}}
     \tablehead{
         \colhead{Calibration Type} & \colhead{Description}
     }
     \startdata
-    camera & The detector properties and image geometries. \\
-    manual\_defects & An initial set of defects that are visible, but do not have algorithmic code to find. \\
-    crosstalk & The initial laboratory measured crosstalk coefficients from \citet{2021JATIS...7d48002S}. \\
-    transmission\_filter\_detector & The filter throughput evaluated for each detector. \\
-    transmission\_optics & The throughput of the telescope and camera optics. \\
-    transmission\_sensor & The quantum efficiency of each detector over the full wavelength range. \\
+    \texttt{camera} & The detector properties and image geometries. \\
+    \texttt{manual\_defects} & An initial set of defects that are visible, but do not have algorithmic code to find. \\
+    \texttt{crosstalk} & The initial laboratory measured crosstalk coefficients from \citet{2021JATIS...7d48002S}. \\
+    \texttt{transmission\_filter\_detector} & The filter throughput evaluated for each detector. \\
+    \texttt{transmission\_optics} & The throughput of the telescope and camera optics. \\
+    \texttt{transmission\_sensor} & The quantum efficiency of each detector over the full wavelength range. \\
     \enddata
-\end{deluxetable}
+\end{deluxetable*}
 
 \subsection{Auxiliary Data Products} \label{sec:calibration-production:auxiliary-data-products}
 In addition to the exposures taken with the calibration system, we have some additional sources of information that we can use to characterize the camera.
@@ -231,16 +231,15 @@ Finally, each exposure has an associated shutter motion profile that can be used
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section~\ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of inducing crosstalk between the different channels.
 In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring analog signal-processing integrated circuits (ASPICs).
-The result of these couplings is that the data for a particular amplifier show a scaled copy of neighboring amplifiers added to the image.\todo{Give the typical and maximum crosstalk coefficient magnitudes measured for LSSTCam (e.g.\ $\sim10^{-4}$ nearest-neighbour, $<10^{-5}$ elsewhere), and how the two coupling mechanisms differ in strength.}
+The result of these couplings is that the data for a particular amplifier show a scaled copy of neighboring amplifiers added to the image, where the crosstalk signal in the nearest neighbor is typically a fraction of $\sim10^{-4}$ times the brightness of the source.
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
 This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.
 These two sources cannot be disentangled from one another, so we measure and correct both forms of crosstalk as a single artifact.
 
 Correcting for this additional signal is easy with a known set of crosstalk coefficients between a given source and target amplifier. Each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifiers to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
 By repeating this for all amplifiers, we can build up a full-detector subtrahend image that can then be subtracted.
-As this correction may be imperfect at the $10^{-5}$ level, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
+The correction may leave residuals up to a fraction of $10^{-5}$ of the source signal, and to mark regions affected by imperfect correction we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
 The majority of these CROSSTALK masks cover regions where saturated star cores and bleed trails would fall, with the largest bleeds causing the mask to be added to up to 1.5\% of the detector area.
-\todo{Quantify ``may be imperfect'': the residual crosstalk after correction (as a fraction of the uncorrected signal, cf.\ Figure~\ref{fig:crosstalk-linear-nonlinear-fit}) and the typical fraction of pixels flagged CROSSTALK in a science image.}
 This provides a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
 
 As this crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
@@ -248,56 +247,60 @@ This naturally places the crosstalk correction early in the ISR processing. This
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifiers.
 Performing crosstalk correction prior to overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
-
 The crosstalk coefficients used during commissioning were calibrated from lab measurements at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S}.
 However, the switch from 2s readouts to 3s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.
-\todo{State by how much the coefficients changed between the 2\,s and 3\,s sequencers (a typical ratio or percent shift), which is what justifies the remeasurement.}
 Table~\ref{tab:crosstalk-typical} shows the median, minimum, maximum, and standard deviation for nearest neighbor amplifiers, for amplifiers on the same side of the midline separated by two and three amplifiers, and for across the midline.
 The two detector families have different crosstalk responses, as do all detectors between the 2s and 3s sequencer, so these values are listed for each case.
 From these values, we can see that the crosstalk is most significant in the amplifiers nearest the source, with the median signal dropping by a factor of 10 when considering distant amplifiers on the same side of the midline.
 Amplifiers across the midline are another factor of 10 smaller than even those distant amplifiers.
 The sequencer change also reduced the scale of the crosstalk by about a factor of 2, with the same pattern of reduction with distance.
 
-\begin{deluxetable}{lllllll}[t!]
-  \tablecaption{Typical Crosstalk Values in LSSTCam\label{tab:crosstalk-typical}}
+\begin{deluxetable*}{lllrrrr}[t!]
+    \tablecaption{Typical crosstalk values by detector type in LSSTCam.
+Separation gives the position of the target amplifier relative to the source amplifier.
+NN is the nearest neighbor amplifier, 2A and 3A are amplifiers on the same side of the midline separated by two and three amplifiers, and ML is an amplifier across the detector midline.
+The crosstalk signal is modeled as quadratic in the source flux, so the upper block lists the linear coefficients (dimensionless) and the lower block lists the quadratic coefficients (in units of $e^{-1}$).
+\label{tab:crosstalk-typical}}
   \tablehead{
     \colhead{Detector Type} & \colhead{Sequencer} & \colhead{Separation} & \colhead{Minimum} & \colhead{Median} & \colhead{Maximum} & \colhead{Stdev}
   }
   \startdata
-  E2V & 2s & Nearest Neighbor & -1.59e-4 & 1.91e-4 & 6.76e-4 & 5.67e-5 \\
-      &    & Two Amplifiers   & -3.74e-5 & 3.77e-5 & 2.05e-4 & 2.59e-5 \\
-      &    & Three Amplifiers & -5.45e-5 & 1.43e-5 & 1.21e-4 & 1.48e-5 \\
-      &    & Across Midline   & -5.97e-5 & 5.89e-6 & 7.96e-5 & 6.46e-6 \\
-  ITL & 2s & Nearest Neighbor & -1.59e-4 & 1.95e-4 & 6.76e-4 & 5.95e-5 \\
-      &    & Two Amplifiers   & -3.74e-5 & 5.04e-5 & 2.06e-4 & 3.67e-5 \\
-      &    & Three Amplifiers & -5.45e-5 & 1.98e-5 & 1.21e-4 & 2.27e-5 \\
-      &    & Across Midline   & -4.71e-5 & 5.17e-6 & 7.96e-5 & 6.48e-6 \\
-  E2V & 3s & Nearest Neighbor & -2.31e-4 & 9.55e-5 & 4.63e-4 & 4.47e-5 \\
-      &    & Two Amplifiers   & -1.96e-5 & 1.54e-5 & 1.44e-4 & 1.89e-5 \\
-      &    & Three Amplifiers & -2.35e-5 & 3.31e-6 & 6.49e-5 & 9.93e-6 \\
-      &    & Across Midline   & -2.79e-5 &-6.67e-7 & 3.16e-5 & 3.59e-6 \\
-  ITL & 3s & Nearest Neighbor & -2.31e-4 & 1.02e-4 & 4.64e-4 & 5.09e-5 \\
-      &    & Two Amplifiers   & -1.96e-5 & 2.79e-5 & 1.44e-4 & 2.49e-5 \\
-      &    & Three Amplifiers & -2.35e-5 & 8.13e-6 & 6.49e-5 & 1.44e-5 \\
-      &    & Across Midline   & -2.46e-5 &-1.62e-6 & 3.16e-5 & 3.43e-6 \\
-  E2V Sqr & 2s & NN & -2.06e-9  & -2.87e-10 & 1.04e-9 & 1.49e-10 \\
-          &    & 2  & -7.75e-10 & -1.79e-10 & 8.87e-10& 7.10e-11 \\
-          &    & 3  & -6.66e-10 & -1.33e-10 & 3.30e-10& 6.32e-11 \\
-          &    & ML & -8.79e-10 & -5.66e-11 & 5.73e-10& 5.26e-11 \\
-  ITL Sqr & 2s & NN & -2.05e-9  & -2.81e-10 & 1.07e-9 & 1.51e-10 \\
-          &    & 2  & -7.76e-10 & -1.78e-10 & 8.87e-10& 7.42e-11 \\
-          &    & 3  & -4.33e-10 & -1.34e-10 & 3.30e-10& 6.61e-11 \\
-          &    & ML & -8.79e-10 & -5.73e-11 & 5.33e-10& 5.71e-11 \\
-  E2V Sqr & 3s & NN & -4.31e-10 & -7.88e-12 & 5.20e-10& 5.27e-11 \\
-          &    & 2  & -3.46e-10 & -5.06e-11 & 1.99e-10& 2.48e-11 \\
-          &    & 3  & -2.45e-10 & -4.41e-11 & 8.63e-11& 1.81e-11 \\
-          &    & ML & -5.66e-10 & -1.29e-11 & 5.72e-10& 1.68e-11 \\
-  ITL Sqr & 3s & NN & -4.31e-10 & -1.60e-11 & 5.20e-10& 4.99e-11 \\
-          &    & 2  & -3.46e-10 & -5.34e-11 & 1.99e-10 & 2.61e-11 \\
-          &    & 3  & -2.45e-10 & -4.49e-11 & 6.82e-11 & 1.77e-11 \\
-          &    & ML & -5.66e-10 & -1.29e-11 & 5.72e-10 & 1.68e-11 \\
+  \cutinhead{Linear Coefficients ($\times10^{-5}$)}
+  E2V & 2s & NN &   $-15.9$ &    $19.1$ &    $67.6$ &    $5.67$ \\
+      &    & 2A &   $-3.74$ &    $3.77$ &    $20.5$ &    $2.59$ \\
+      &    & 3A &   $-5.45$ &    $1.43$ &    $12.1$ &    $1.48$ \\
+      &    & ML &   $-5.97$ &   $0.589$ &    $7.96$ &   $0.646$ \\
+  ITL & 2s & NN &   $-15.9$ &    $19.5$ &    $67.6$ &    $5.95$ \\
+      &    & 2A &   $-3.74$ &    $5.04$ &    $20.6$ &    $3.67$ \\
+      &    & 3A &   $-5.45$ &    $1.98$ &    $12.1$ &    $2.27$ \\
+      &    & ML &   $-4.71$ &   $0.517$ &    $7.96$ &   $0.648$ \\
+  E2V & 3s & NN &   $-23.1$ &    $9.55$ &    $46.3$ &    $4.47$ \\
+      &    & 2A &   $-1.96$ &    $1.54$ &    $14.4$ &    $1.89$ \\
+      &    & 3A &   $-2.35$ &   $0.331$ &    $6.49$ &   $0.993$ \\
+      &    & ML &   $-2.79$ & $-0.0667$ &    $3.16$ &   $0.359$ \\
+  ITL & 3s & NN &   $-23.1$ &    $10.2$ &    $46.4$ &    $5.09$ \\
+      &    & 2A &   $-1.96$ &    $2.79$ &    $14.4$ &    $2.49$ \\
+      &    & 3A &   $-2.35$ &   $0.813$ &    $6.49$ &    $1.44$ \\
+      &    & ML &   $-2.46$ &  $-0.162$ &    $3.16$ &   $0.343$ \\
+  \cutinhead{Quadratic Coefficients ($\times10^{-10}\,e^{-1}$)}
+  E2V & 2s & NN &   $-20.6$ &   $-2.87$ &    $10.4$ &    $1.49$ \\
+      &    & 2A &   $-7.75$ &   $-1.79$ &    $8.87$ &   $0.710$ \\
+      &    & 3A &   $-6.66$ &   $-1.33$ &    $3.30$ &   $0.632$ \\
+      &    & ML &   $-8.79$ &  $-0.566$ &    $5.73$ &   $0.526$ \\
+  ITL & 2s & NN &   $-20.5$ &   $-2.81$ &    $10.7$ &    $1.51$ \\
+      &    & 2A &   $-7.76$ &   $-1.78$ &    $8.87$ &   $0.742$ \\
+      &    & 3A &   $-4.33$ &   $-1.34$ &    $3.30$ &   $0.661$ \\
+      &    & ML &   $-8.79$ &  $-0.573$ &    $5.33$ &   $0.571$ \\
+  E2V & 3s & NN &   $-4.31$ & $-0.0788$ &    $5.20$ &   $0.527$ \\
+      &    & 2A &   $-3.46$ &  $-0.506$ &    $1.99$ &   $0.248$ \\
+      &    & 3A &   $-2.45$ &  $-0.441$ &   $0.863$ &   $0.181$ \\
+      &    & ML &   $-5.66$ &  $-0.129$ &    $5.72$ &   $0.168$ \\
+  ITL & 3s & NN &   $-4.31$ &  $-0.160$ &    $5.20$ &   $0.499$ \\
+      &    & 2A &   $-3.46$ &  $-0.534$ &    $1.99$ &   $0.261$ \\
+      &    & 3A &   $-2.45$ &  $-0.449$ &   $0.682$ &   $0.177$ \\
+      &    & ML &   $-5.66$ &  $-0.129$ &    $5.72$ &   $0.168$ \\
   \enddata
-\end{deluxetable}
+\end{deluxetable*}
 
 To measure the 3s sequencer crosstalk with the camera on the telescope, we used three nights of spot data taken with the CBP system.
 Each exposure placed one spot on each detector, with ten linearly spaced flux levels between 30,000 ADU (the minimum threshold we use when correcting crosstalk) up to 130,000 ADU at each pointing.
@@ -309,7 +312,7 @@ A total of 655 exposures were used to generate these updated crosstalk coefficie
     \centering
     % TODO: add exposure-time vs.\ mean-signal figure asset
     \includegraphics[width=0.95\columnwidth]{figures/rtn117-crosstalk_npix.png}
-    \caption{Number of source pixels used to measure the crosstalk coefficients for each amplifier.Note that this number is essentially binary: amplifiers that were well covered by spots have more than 50,000 input pixels used for the calculation, while that that were not well covered have essentially zero.
+    \caption{Number of source pixels used to measure the crosstalk coefficients for each amplifier. Note that this number is essentially binary: amplifiers that were well covered by spots have more than 50,000 input pixels used for the calculation, while that that were not well covered have essentially zero.
       As shown, the poorly covered amplifiers are all located at the edge of the focal plane, due to difficulties properly illuminating CBP spots in these locations.
       The median amplifier in the focal plane has 889,369 input pixels used.  % 0,5,25,50,75,95,100: 0,262145,614387,889369,1088136,1253837,3144729
       \todo{Quantify the drop-off: typical source-pixel counts at the focal-plane centre vs.\ the edge, and the minimum count below which a coefficient was considered unconstrained.}}
@@ -321,7 +324,6 @@ All pixels above a threshold of $30{,}000$ electrons were then identified and us
 These ratios therefore show the measured response to the source signal $S$ at the expected location of a crosstalk source at a target location $T$.
 These fluxes and ratios are accumulated for the entire set of exposures and detectors.
 Prior to any further study, the ratios are clipped to ensure contaminating features, such as stray light and reflections of other spots, are removed.
-\todo{Report what fraction of ratio measurements the clipping removes, so the reader can judge how aggressive the cleaning is.}
 Any pixel with a measured ratio larger than 1.0 is excluded, as these would represent an unphysical situation in which the crosstalk signal was brighter than the source signal.
 The remaining signals were 3-sigma clipped for the linear coefficient, and 6-sigma clipped for the squared coefficient, based on the a sigma derived from the inter-quartile distance, under the assumption that the ratio values are normally distributed.
 Of the 90240 coefficients that are needed to fully characterize the crosstalk on the full focal plane, 2703 had to be clipped.
@@ -329,7 +331,6 @@ Of the 90240 coefficients that are needed to fully characterize the crosstalk on
 
 If the crosstalk response were perfectly linear, the average of these clipped ratios would directly yield the crosstalk coefficient between the source and target amplifiers.
 However, as shown in the lab study of the crosstalk, and demonstrated in Figure~\ref{fig:crosstalk-linear-nonlinear-fit}, such a simple model fails to fully remove the crosstalk, as the source brightness changes over the profile of the spot.
-\todo{Quantify the improvement from the non-linear model: residual amplitude (in electrons or as a fraction of source flux) for the linear vs.\ non-linear coefficients shown in the two panels of the figure.}
 
 \begin{figure}[t]
     \centering
@@ -351,7 +352,6 @@ Defects are defined as pixel regions with anomalously high or low response compa
 Defects can be persistent and isolated to specific pixel areas, or they can be transient and appear in different locations across exposures.
 Defects are identified through a combination of automated detection in science images and automatic and manual inspection of calibration frames.
 These defect pixels are masked and marked as \textsc{BAD} for the downstream analysis and interpolated over for visual inspection.
-\todo{Quantify the defect population for DP2: total number of masked pixels/columns, the fraction of the focal plane they represent, the split between manual and automatic detections, and how that fraction varies between E2V and ITL and across epochs.}
 
 % Science images:
 %     0, 5, 25, 50, 75, 95, 100
@@ -398,7 +398,7 @@ Further statistical analyses of the defects and a description of the defect moni
 \subsection{Non-Linearity} \label{sec:calibration-production:linearity}
 
 Non-linearity (NL) describes a deviation from simple proportionality when mapping amplified voltage integrated during readout to the number of analog-to-digital units (ADU) or counts.
-Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic of each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.\todo{Quantify the drifts: the fitted $\alpha$ (per K) and $\beta$ (per day) sensitivities and the resulting non-linearity change over a typical campaign, plus the range of per-amplifier turnoff levels implied by ``characteristic to each readout amplifier''.}
+Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic of each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.
 In practice it introduces pixel-level measurement bias (up to 0.5\% from the true signal), invalidates Poisson counting statistics, and can interfere with measurement of gain (which shouldn't change or drift with signal level).
 Correcting NL to better than 0.01\% is therefore a prerequisite for reliable downstream calibration products and science analyses.
 
@@ -786,15 +786,13 @@ A dark image is an exposure taken with the shutter closed, and measures the sign
 As with the bias, there is little signal in our dark current corrections, and the calibrations are consistent over time.
 The median is $1.68 \times 10^{-4}$~e$^-$\,pixel$^{-1}$\,s$^{-1}$, with minimum and maximum values from $-0.11$ to $764$~e$^-$\,pixel$^{-1}$\,s$^{-1}$.
 Pixels on the high end of that distribution will have the BAD pixel set as described above.
-\todo{Give the measured dark current level (electrons/pixel/s, median and range across the focal plane) and the amplitude of the readout glow, plus how much signal that amounts to in a 30\,s science exposure.}
 These artifacts are removed by scaling the dark to the exposure time of the science image and subtracting it.
 
 Similar to the bias, we construct a combined dark frame from a large number of 30-second exposures, with that time chosen to match the standard exposure time of a science exposure.
 As before, all of the previous calibrations are applied to these dark frames, including the bias correction.
 These exposures have an additional cosmic ray rejection step applied after the ISR processing, as these longer exposures may have more of these features than are found on the bias frames.
 For DP2, the dark exposures that were used for constructing the dark had a median of 488 pixels flagged by the cosmic ray rejection code, with small dispersion (375.3 pixels).
-There are some extreme events, with four inputs having more than 10000 pixels marked (up to a maximum of 24528 found).
-\todo{Quantify the cosmic-ray rate (events or affected pixels per detector per 30\,s exposure) and the fraction of pixels rejected, instead of ``may have more''.}
+There are some extreme events, with four inputs having more than 10000 pixels marked (up to a maximum of 24,528 found).
 
 \subsection{Combined Flats} \label{sec:calibration-production:flats}
 
