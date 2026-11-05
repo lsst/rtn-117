@@ -162,9 +162,6 @@
 \coordinate (dsi-bias-mid) at ($(dsi.east)!0.5!(bias.west)$);
 \node[effect, minimum width=1.9cm, minimum height=1.38cm, text width=1.7cm, anchor=south] (xtm)
   at (dsi-bias-mid |- midnl.south) {Crosstalk\\(across midline)};
-  % Change minimum width and text width to widen the box
-  [effect, minimum width=2.6cm, text width=2.3cm, anchor=south]
-  at (dsi-bias-mid |- midnl.south) {Crosstalk\\(across midline)};
 \draw[effflow] (xtm.south) -- ($(dsi-bias-mid)+(0,0.22)$);
 
 \end{tikzpicture}
