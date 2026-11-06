@@ -29,7 +29,7 @@ Each item names the correction applied, and the reason it sits at this location 
 
     \item \textbf{Dither counts.}
     A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel.
-    This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.\todo{Quantify the bias that dithering removes: the size of the quantization-induced bias in ADU (or in mmag at the relevant sky levels) with and without dithering.}
+    This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.\todo{Quantify the bias that dithering removes: the size of the quantization-induced bias in ADU (or in mmag at the relevant sky levels) with and without dithering.} \todo{ESR: this adds an equivalent of 1/12 ADU Gaussian noise and in exchange removes quantization effects particularly in the row-by-row overscan subtraction.}
     This step is essentially a marginalization step before a full low-signal, differential non-linearity correction can be measured and implemented.
 
     \item \textbf{Serial overscan correction.}
@@ -43,19 +43,20 @@ Each item names the correction applied, and the reason it sits at this location 
 
     \item \textbf{Apply gain.}
     Per-amplifier gains derived from the PTC (\S\ref{sec:processing:calibration:ptc}) convert pixel values from ADU to electrons.
-    Electron units are the native domain for deferred-charge modeling, BFE correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.
+    Electron units are the native domain for deferred-charge modeling, BFE correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.  \todo{ESR: The gain correction here is because this is where the (variable / not-on-chip) gain is applied in the sensor model.}
 
     \item \textbf{Crosstalk correction.}
     Electrical coupling between adjacent amplifier outputs is removed using the crosstalk matrix (\S\ref{sec:processing:calibration:xtalk}).
-    Crosstalk is applied after gain conversion so that coupled signals are corrected in electron units, consistent with how the matrix was measured.
+    Crosstalk is applied after gain conversion so that coupled signals are corrected in electron units, consistent with how the matrix was measured. \todo{ESR: The important thing isn't where the crosstalk was measured, but where the crosstalk signal is.  Since it is primarily in the cabling before we hit the amplifiers and digitization, the crosstalk correction should be here, in electrons.}
 
     \item \textbf{Parallel overscan correction.}
-    Analogous to the serial overscan step, the parallel overscan region provides a column-direction estimate of readout offset that is subtracted from the imaging area.
+    The parallel overscan gives one offset per column.
+    For each column, the parallel overscan pixels are averaged over the overscan rows, and this offset is subtracted from every imaging pixel in that column. 
     It follows crosstalk correction because amplifier coupling can inject signal into overscan regions, and removing crosstalk first yields a cleaner overscan bias estimate.
 
     \item \textbf{Non-linearity correction.}
     The double-spline linearizer (\S\ref{sec:processing:calibration:linearity}) maps measured counts to a linearized electron count by subtracting absolute and amplifier-relative spline corrections.
-    This step must precede deferred-charge correction because the deferred-charge model and its calibration were fit assuming that signal-dependent readout non-linearities have already been removed (\S\ref{sec:processing:calibration:cti}).
+    This step must precede deferred-charge correction  (\S\ref{sec:processing:calibration:cti}) because the deferred-charge model and its calibration were fit assuming that signal-dependent readout non-linearities have already been removed. \todo{ESR: The linearization is here because this is where most of the non-linearity comes in, particularly at high signal level.}
 
     \item \textbf{Deferred charge correction.}
     Residual charge left in pixels during serial readout---from global charge transfer inefficiency, local electronic offset in the output amplifier, and serial charge traps on ITL sensors---is corrected using the parameters fit in \S\ref{sec:processing:calibration:cti}.
@@ -115,10 +116,12 @@ Each item names the correction applied, and the reason it sits at this location 
     Interpolation is performed after flat-fielding so that both the science signal and the replacement values are in the same calibrated flux units expected by algorithms that assume a continuous image (for example, background estimation and certain astrometric measurements).
 
     \item \textbf{Amplifier offsets.}
-    Small per-amplifier additive adjustments derived from flat-field residuals may be applied as a final optional step to reduce residual flux discontinuities at amplifier boundaries.\todo{Quantify ``small'' and ``residual'': the typical amplitude of the amplifier-boundary discontinuity before and after this step, in electrons or as a fraction of sky, and state whether it was enabled for DP2.}
+    Small per-amplifier additive adjustments derived from flat-field residuals may be applied as a final optional step to reduce residual flux discontinuities at amplifier boundaries.\todo{Quantify ``small'' and ``residual'': the typical amplitude of the amplifier-boundary discontinuity before and after this step, in electrons or as a fraction of sky, and state whether it was enabled for DP2.} \todo{ESR: This was enabled in DP2.  While the vast majority of amplifier boundaries had offsets significantly below the sky noise, there were 10s of amplifiers that had offsets up to a 5 electrons that were visible even at i-band sky levels of ~1000 e-.}
     This step is optional because the PTC gain solution already includes average amplifier matching (\S\ref{sec:processing:calibration:ptc}); the offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
 \end{enumerate}
 
 The output exposure's metadata records the calibration epoch, the identifier of the curated collection used, and a per-step record of which ISR corrections were applied or skipped.
 This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
 The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
+
+\todo{Can you include a table of MASK flag?}
