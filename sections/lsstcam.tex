@@ -1,9 +1,9 @@
 \section{The LSST Camera (LSSTCam)} \label{sec:lsstcam}
 
-The design of the LSSTCam \cite{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
+The design of the LSSTCam \citep{10.71929/rubin/2571927} was developed in order to meet the strict requirements set by the ambitious goals of LSST \citep{2019ApJ...873..111I, RTN-011}, as described in \cite{2024SPIE13096E..1SR}.
 
 % Focal plane
-The LSSTCam focal plane (Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 thick, fully depleted charge-coupled devices (CCDs) used for science imaging, organized into 3$\times$3 rafts (described in more detail in \citet{CTN-001}).
+The LSSTCam focal plane (see Figure~\ref{fig:focal-plane}) is a mosaic centrally composed of 189 thick, fully depleted charge-coupled devices (CCDs) used for science imaging, organized into 3$\times$3 rafts (described in more detail in \citet{CTN-001}).
 Each raft is composed of three Readout Electronics Boards (REB) providing the power and electronics of three neighboring CCDs in a row.
 The corners of the mosaic contain two CCDs for guiding and one split-wavefront CCD offset intra- and extra-focally relative to the science CCDs.
 
@@ -17,15 +17,18 @@ The corners of the mosaic contain two CCDs for guiding and one split-wavefront C
 \end{figure*}
 
 % CCDs
-LSSTCam CCDs are read out in 16 channels, each with its own readout electronics and signal amplifiers.
+Each LSSTCam CCD is divided into 16 segments that are read out simultaneously, each through its own serial register, on-chip output amplifier, and REB electronics.
+We call each segment and its readout chain is referred to by either channel or its amplifier.
+The latter follows common usage in the CCD literature and in the LSST Science Pipelines, where the segments are named C00--C07 and C10--C17 and calibration products such as gains, read noise, and crosstalk coefficients are indexed per amplifier.
+Throughout this paper the two terms are interchangeable. We will use ``channel'' when describing the readout electronics and signal path, and ``amplifier'' when referring to the unit of calibration and its region of pixels on the detector.
 The imaging region of each channel is 2002 pixels high and 512 pixels wide for E2V sensors and 2000 pixels high and 509 pixels wide for ITL sensors, giving a full imaging area of $4096 \times 4004$ pixels (E2V) and $4072 \times 4000$ pixels (ITL).
-Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the amplifier (the \emph{serial} direction).
+Charge is shifted down the columns (the \emph{parallel} direction) into a serial register, which carries each row to the output amplifier (the \emph{serial} direction).
 During readout, each row begins with serial prescan columns and ends with serial overscan columns, and the image ends with parallel overscan rows, so that the raw readout of every channel is 2048 rows $\times$ 576 columns for both vendors (Table~\ref{tab:amp-geometry}).
 
 \begin{table}[t]
     \centering
     \small
-    \caption{Readout geometry of one LSSTCam amplifier channel, in pixels.
+    \caption{Readout geometry of one LSSTCam channel (amplifier), in pixels.
     Sizes are given as rows (parallel direction) $\times$ columns (serial direction).}
     \label{tab:amp-geometry}
     \begin{tabular}{lcc}
@@ -90,10 +93,10 @@ During the integration of an exposure, dark current adds charge that is thermall
 Additionally, changes in dopant concentration throughout the silicon bulk cause lateral electric fields that deflect the path of electrons as they drift to the potential wells, producing a fixed pattern of astrometric distortion called ``tree rings''.
 At the reddest wavelengths, mainly in the $z$- and $y$-bands, light reflects off the surfaces of the 100\,$\mu$m-thick sensors before it is absorbed, and the resulting thin-film interference produces a quasi-periodic pattern of bright and dark fringes whose amplitude and phase depend on the spectrum of the incident light \citep{2023PASP..135c4503G}.
 
-When the integration stops, the readout process begins, and the charge packets are then shifted down the columns by parallel transfer and along the serial register toward the amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) or caught in serial traps in the output register and released at a later time \citep{2021JATIS...7d48002S}.
+When the integration stops, the readout process begins, and the charge packets are then shifted down the columns by parallel transfer and along the serial register toward the output amplifier, where a fraction of each packet is left behind as charge transfer inefficiency (CTI) or caught in serial traps in the output register and released at a later time \citep{2021JATIS...7d48002S}.
 
-At the output node of the detector's chip, the on-chip amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried as a voltage rather than electrons.
-The signal then passes through cabling to the REB, where crosstalk couples signals between neighboring amplifiers and across the detector midline \citep{2015JInst..10C5010O}, after which the analog signal processing integrated circuit (ASPIC) applies a second, temperature-dependent gain ($g_2$).
+At the output node of the detector's chip, the on-chip output amplifier converts charge to voltage with gain $g_1$, and from this point the signal is carried as a voltage rather than electrons.
+The signal then passes through cabling to the REB, where crosstalk couples signals between neighboring channels and across the detector midline \citep{2015JInst..10C5010O}, after which the analog signal processing integrated circuit (ASPIC) applies a second, temperature-dependent gain ($g_2$).
 The dual-slope integrator then samples each pixel twice, once at the reset level and once at the signal level, and outputs their difference scaled by a third gain, $g_3$ \citep{SITCOMTN-086}.
 Two distinct electronic offsets are added to the signal along this chain, and we keep them separate (Figure~\ref{fig:detector-boxes}).
 The clock-injected offset is an unintended signal: transitions of the parallel and serial clocks couple into the video signal near the output amplifier, adding an offset of up to $\pm10$k ADU that depends on position in the readout sequence and produces the 2D bias structure and the bias ``wave'' \citep{2026arXiv260631806M}.

@@ -145,6 +145,10 @@ Each item names the correction applied and the reason it sits at this location i
     The offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
 \end{enumerate}
 
+Two detector effects described in \S\ref{sec:lsstcam:detector-model} are not corrected by the DP2 ISR pipeline.
+There is no dedicated fringe-subtraction step, so residual fringing remains in $z$- and $y$-band images after flat-fielding (\S\ref{sec:discussion:limitations}).
+Tree rings are also not corrected, and their pattern of astrometric distortion is left in the post-ISR images.
+
 Several of these steps flag pixels in the mask plane rather than changing their values.
 Table~\ref{tab:isr-mask-planes} summarizes the mask planes set during ISR, which downstream tasks use to exclude or down-weight affected pixels in source detection, measurement, and image coaddition.
 
@@ -167,7 +171,6 @@ Table~\ref{tab:isr-mask-planes} summarizes the mask planes set during ISR, which
 
 The output exposure's metadata records the calibration epoch, the identifier of the collection used, and a per-step record of which ISR corrections were applied or skipped.
 This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
-The verification, acceptance, and distribution context for these metadata fields is described in \S\ref{sec:verify-accept-certify:data-products}.
 
 \section{Calibration Production and Application} \label{sec:calibration-production}
 % former label: sec:processing:calibration
@@ -193,7 +196,7 @@ Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
 
 \subsection{Crosstalk} \label{sec:calibration-production:xtalk}
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section~\ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
-One downside of this design strategy is the possibility of inducing crosstalk between the different amplifier channels.
+One downside of this design strategy is the possibility of inducing crosstalk between the different channels.
 In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring analog signal-processing integrated circuits (ASPICs).
 The result of these couplings is that the data for a particular amplifier show a scaled copy of neighboring amplifiers added to the image.\todo{Give the typical and maximum crosstalk coefficient magnitudes measured for LSSTCam (e.g.\ $\sim10^{-4}$ nearest-neighbour, $<10^{-5}$ elsewhere), and how the two coupling mechanisms differ in strength.}
 As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
@@ -227,7 +230,7 @@ A total of XX exposures were used to generate these updated crosstalk coefficien
     \label{fig:crosstalk-source-pixels}
 \end{figure}
 
-As discussed above (CZW: ???), each of these exposures was minimally processed to correct the serial overscan, apply the gains to convert the units to electrons, and trim and assemble the data segments.
+As discussed above (CZW: ???), each of these exposures was minimally processed to correct the serial overscan, apply the gains to convert the units to electrons, and trim and assemble the amplifiers.
 All pixels above a threshold of $30{,}000$ electrons were then identified and used to construct crosstalk ratios $r_{ij} = T(\hat{x}, \hat{y})_j / S(x, y)_i$, where $S(x, y)_i$ is the flux value in a pixel at $(x, y)$ in amplifier $i$, and $T(\hat{x}, \hat{y})_j$ is the flux value at the same ``readout coordinate'' $(\hat{x}, \hat{y})$ in amplifier $j \ne i$.
 These ratios therefore show the measured response to the source signal $S$ at the expected location of a crosstalk source at a target location $T$.
 These fluxes and ratios are accumulated for the entire set of exposures and detectors.
@@ -333,7 +336,7 @@ Points above the turnoff are excluded from the NL fit because there is a maximum
     \textit{Left}---absolute non-linearity $S_{\mathrm{abs}}(\mu)$ of the reference amplifier~C07.
     Gray points are per-exposure measurements (spline value plus fit residual), the black line is the Akima spline, and open circles mark the spline nodes.
     \textit{Right}---relative non-linearity $S_{\mathrm{rel}}(\mu)$ of the remaining amplifiers with respect to C07, with nodes shown as filled points.
-    Blue shades are amplifiers C10--C17 and orange shades are C00--C06; darker shades correspond to higher segment numbers.}
+    Blue shades are amplifiers C10--C17 and orange shades are C00--C06; darker shades correspond to higher amplifier numbers.}
     \label{fig:linearity-abs-rel}
 \end{figure}
 

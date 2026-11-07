@@ -21,7 +21,7 @@ After new calibrations have been constructed, they are used to process some set 
 For simpler calibrations, such as biases and darks, it is usually sufficient to apply the combined calibration to their input bias and dark frames to confirm that the residuals are consistent with only the read noise remaining.
 Other calibrations require more analysis, such as applying the BFE correction to a series of on-sky images and confirming that the distribution of source sizes is no longer a function of the source flux.
 Calibrations that do not pass some tests are not necessarily rejected outright, although those failures should be raised and considered during the acceptance process.
-This is particularly true of tests that examine a property at the amplifier segment level; rejecting a calibration due to a small number of problematic segments is impractical.
+This is particularly true of tests that examine a property at the amplifier level; rejecting a calibration due to a small number of problematic amplifiers is impractical.
 Where calibration construction does not produce a result that passes all of the requirements, we can add to our defect list to exclude regions that have serious issues from further processing.
 
 The current set of tests and the criteria used for acceptance are detailed in DMTN-101, with a brief summary listed in Table~\ref{tab:verification_tests}.
@@ -34,9 +34,24 @@ It is likely that we will expand the list of verification tests calculated for c
         \colhead{Description}
     }
     \startdata
-        Bias & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should have no significant signal.\strut} \\
-        & \parbox[t]{0.17\textwidth}{\raggedright Image stdev\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should not contribute to the image noise.\strut} \\
-        Dark & \parbox[t]{0.17\textwidth}{\raggedright Image stdev with CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should not contribute to the image noise. Cosmic rays should be rejected to prevent them from skewing the calculation.\strut} \\
+        All inputs & \parbox[t]{0.17\textwidth}{\raggedright Visual inspection\strut} & \parbox[t]{0.18\textwidth}{\raggedright No stray light or other artifacts\strut} & \parbox[t]{0.39\textwidth}{\raggedright Every input bias, dark, and flat frame is checked by eye. Frames with stray light, light leaks, or other unexpected features are removed before combining.\strut} \\
+        Bias & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should leave no significant signal behind.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Clipped stdev per amplifier\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The bias frame should not add noise to the image. Enough frames are combined so the effective read noise grows by less than 2.5\%.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Unclipped stdev after CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the clipped stdev\strut} & \parbox[t]{0.39\textwidth}{\raggedright Once cosmic rays are removed, no outlier pixels should remain.\strut} \\
+        Dark & \parbox[t]{0.17\textwidth}{\raggedright Image mean\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 0.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should fully remove the dark current.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Clipped stdev per amplifier\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright The dark frame should not add noise to the image. As with the bias, the effective read noise should grow by less than 2.5\%.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Unclipped stdev after CR rejection\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with the clipped stdev\strut} & \parbox[t]{0.39\textwidth}{\raggedright Cosmic rays are rejected so they do not skew the result.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Difference of even and odd darks\strut} & \parbox[t]{0.18\textwidth}{\raggedright Mean consistent with 0.0, stdev consistent with dark current and read noise\strut} & \parbox[t]{0.39\textwidth}{\raggedright Two darks built from separate halves of the inputs should agree.\strut} \\
+        Defects & \parbox[t]{0.17\textwidth}{\raggedright Normalized flat median and clipped stdev\strut} & \parbox[t]{0.18\textwidth}{\raggedright Consistent with 1.0\strut} & \parbox[t]{0.39\textwidth}{\raggedright After masking defects, the remaining pixels should behave normally.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Pixels that vary between flux levels\strut} & \parbox[t]{0.18\textwidth}{\raggedright All present in the defect map\strut} & \parbox[t]{0.39\textwidth}{\raggedright Any pixel that does not respond consistently across flux levels should be masked.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Dark pixels in pocket-pumped flats\strut} & \parbox[t]{0.18\textwidth}{\raggedright All present in the defect map\strut} & \parbox[t]{0.39\textwidth}{\raggedright Charge traps found by pocket pumping should be masked.\strut} \\
+        PTC & \parbox[t]{0.17\textwidth}{\raggedright Gain\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright The gain of each amplifier should be stable over time.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright Read noise\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright The read noise of each amplifier should be stable over time.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright PTC turnoff\strut} & \parbox[t]{0.18\textwidth}{\raggedright At least 90{,}000\,e$^-$\strut} & \parbox[t]{0.39\textwidth}{\raggedright Each amplifier should meet the full well requirement.\strut} \\
+        & \parbox[t]{0.17\textwidth}{\raggedright BFE coefficient $a_{00}$\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5$\sigma$ of the detector population mean\strut} & \parbox[t]{0.39\textwidth}{\raggedright The coefficient is set by the detector electrostatics and should only change if the operating voltages change.\strut} \\
+        Gain & \parbox[t]{0.17\textwidth}{\raggedright Gain from a flat pair\strut} & \parbox[t]{0.18\textwidth}{\raggedright Within 5\% of the stored value\strut} & \parbox[t]{0.39\textwidth}{\raggedright A quick check of the gain between full PTC runs.\strut} \\
+        Linearity & \parbox[t]{0.17\textwidth}{\raggedright Residual nonlinearity\strut} & \parbox[t]{0.18\textwidth}{\raggedright Below 1\% for spline and lookup table, quadratic term below $10^{-6}$\strut} & \parbox[t]{0.39\textwidth}{\raggedright A new linearizer fit to data already corrected by the candidate should find almost nothing left to correct.\strut} \\
+        Crosstalk & \parbox[t]{0.17\textwidth}{\raggedright Median and clipped mean with spots masked\strut} & \parbox[t]{0.18\textwidth}{\raggedright Equal within statistical error\strut} & \parbox[t]{0.39\textwidth}{\raggedright After correction, no crosstalk ghosts should remain around the bright spots.\strut} \\
     \enddata
 \end{deluxetable*}
 
@@ -47,8 +62,8 @@ It is likely that we will expand the list of verification tests calculated for c
 Once a set of calibrations has been generated and verified, a meeting of the Telescope and Auxiliary Instrumentation Calibration Acceptance Board (TAXICAB) is called to decide if those calibrations should be deployed for use.
 The TAXICAB does not have a fixed membership, and welcomes any member of the project to join to offer opinions and comments on the calibrations presented.
 The goal of this board is to ensure that the decision-making for calibration approval is public and accessible, with the final decisions made by consensus agreement.
-Associated with each TAXICAB meeting is a ``hailing ticket,'' which is used to provide a location for details and artifacts from the generation and verification process.
-These artifacts of the generation and verification process are presented at the TAXICAB meeting, where the attendees can decide whether or not the calibration is sufficient, and whether further tests are needed to determine if the calibration performs as expected.
+Calibration details and artifacts from the generation and verification process are generally accessible and presented at the TAXICAB meeting.
+These artifacts of the generation and verification process are presented at the TAXICAB meeting used to determine if the calibration performs sufficiently well for data release processing.
 A calibration with failures of some of the verification tests is not necessarily excluded, and may be allowed for use based on the significance of the failures, with the TAXICAB making that final decision.
 
 % This section will describe the calibration acceptance process (TAXICAB).
@@ -57,35 +72,21 @@ A calibration with failures of some of the verification tests is not necessarily
 \subsection{Certification} \label{sec:verify-accept-certify:certification}
 % Describe the final certification step in the context of the data ``butler'' and file system storage.
 
-Certification is a butler database operation that adds the datasets comprising a calibration to a CALIBRATION collection, together with the range of observation dates over which that calibration is valid.
+Certification is a butler database operation that adds the datasets comprising a calibration to a \texttt{CALIBRATION} collection, together with the range of observation dates over which that calibration is valid.
 
 \subsection{Distribution} \label{sec:verify-accept-certify:distribution}
-Distribution of LSSTCam calibrations is also a butler database operation. The certified calibration collections are gathered into a single CHAINED collection named \texttt{LSSTCam/calib}, which chains the calibrations from the successive calibration epochs along with their associated validity ranges.
+Distribution of LSSTCam calibrations is also a butler database operation. The certified calibration collections are gathered into a single \texttt{CHAINED} collection named \texttt{LSSTCam/calib}, which chains the calibrations from the successive calibration epochs along with their associated validity ranges.
 This calibration collection is synchronized across all data repositories and data facilities used for data production, including the summit facility, the SLAC Shared Scientific Data Facility (S3DF) at the United States Data Facility (USDF), the French Data Facility (FrDF) at CC-IN2P3 in Lyon, and the United Kingdom Data Facility (UKDF).
 This ensures that the same calibrations are applied to the same images regardless of where data production is run and data are served, and it ensures that the Prompt Products data pipeline, which produces the live alert stream, always uses the most up-to-date calibrations.
 Processing data with \texttt{LSSTCam/calib} therefore always applies the calibrations appropriate to each science image, without any manual selection on the part of the user.
 
-\subsection{Data Monitoring} \label{sec:verify-accept-certify:data-monitoring}
+\subsection{Data Monitoring \& Criteria for Calibration Epochs} \label{sec:verify-accept-certify:data-monitoring}
 % Discuss how we monitor incoming streams of new data for quality (e.g.\ rubinTV, plot navigator, trend monitoring with chronograph).
 One additional advantage of the verification system is that it provides a way to monitor the state of the camera, and the continuing appropriateness of the calibration products.
 By running the verification tasks on new calibration exposures as they are taken, we can check how well the existing calibrations correct these new exposures.
-Although not running during the DP2 observations and analysis, this verification will be added to the processing performed at the summit, with the metrics calculated from this processing passed to the Sasquatch and Chronograf monitoring system that is used to track other performance quantities.
+Although not running during the DP2 observations and analysis, this verification will be added to the processing performed at the summit, with the metrics calculated from this processing passed to the Sasquatch \citep{2024SPIE13101E..1MF, DMTN-290} and Chronograf monitoring system that is used to track other performance quantities.
 This monitoring will allow the health of the camera to be tracked and the generation of new calibrations to be prompted by any observed changes in the metrics over time.
 
 A drift in these metrics showing that the current calibrations no longer describe the instrument within tolerance is one of several triggers for a new calibration epoch (\S\ref{sec:discussion:sequencer}).
-A new epoch, with a complete new set of calibration products, is also started whenever any of the following happens:
-\begin{itemize}
-    \item a change to the sequencer or to any other part of the CCD operating mode (e.g.\ clock voltages or timing);
-    \item a power cycle of the focal plane or the readout electronics, such as during maintenance, which can shift bias levels, gains, and defect populations;
-    \item a hardware intervention on the camera, such as recovering or replacing a detector or readout board.
-\end{itemize}
+A new epoch, with a complete new set of calibration products, is also started after (1) any change to the sequencer or to another part of the CCD operating mode, such as the clock voltages or timing, (2) a power cycle of the focal plane or readout electronics, which can shift bias levels, gains, and defect populations, and (3) any hardware intervention on the camera, such as recovering or replacing a detector or readout board.
 Each new set of calibrations then passes through the same verification, acceptance, and certification steps described above.
-
-\subsection{Data Products, Distribution, and User Access} \label{sec:verify-accept-certify:data-products}
-Describe the output schema, distribution process (exporting/importing, Rucio, and TAXICAB tracking), and user access.
-
-We enumerate the primary data products (calibration frames, ISR outputs, masks, and metadata tables), describe naming/versioning conventions, and summarize the provenance tracked for each product (inputs, software versions, and configuration).
-
-Briefly describe how users discover and retrieve products (e.g., via a data butler/repository interface) and recommended query patterns.
-
-Be sure to mention that header metadata contains information about whether a particular ISR step was applied/not applied and which calibration dataset was used.
