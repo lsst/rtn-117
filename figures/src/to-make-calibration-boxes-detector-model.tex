@@ -81,7 +81,7 @@
 \node[comp, minimum width=1.7cm, text width=1.5cm, right=0.32cm of aspic] (dsi) {Dual-Slope\\Integrator};
 \draw[sigflow] (aspic.east) -- (dsi.west);
 
-\node[comp, minimum width=1.7cm, text width=1.5cm, right=0.32cm of dsi] (bias) {Bias\\Injection\\($10$--$20$k)};
+\node[comp, minimum width=1.7cm, text width=1.5cm, right=0.32cm of dsi] (bias) {Bias\\Injection\\($10$--$20$k ADU)};
 \draw[sigflow] (dsi.east) -- (bias.west);
 
 \node[comp, minimum width=1.7cm, text width=1.5cm, right=0.32cm of bias] (adc) {Analog-\\Digital\\Converter (ADC)};
@@ -106,7 +106,7 @@
 \path let \p1=($(detfit.south)+(0,-0.22)$), \p2=(reb-se), \n1={\y2-\y1} in
   node[gaincap, text width=2.0cm] (g1) at ($(g1-home)+(0,\n1)$) {Gain, $g_1$\\(On-chip)\\($\sim5\,\mu$V/e$^-$)};
 \node[gaincap, text width=2.0cm, anchor=north] (g2) at (aspic |- g1.north) {Gain, $g_2$\\(adj.; $T_{\mathrm{REB}}$-dep.)};
-\node[gaincap, text width=2.0cm, anchor=north] (g3) at (dsi |- g1.north) {Gain, $g_3$\\($T_{\mathrm{REB}}$-dep.?)};
+\node[gaincap, text width=2.0cm, anchor=north] (g3) at (dsi |- g1.north) {Gain, $g_3$};
 \node[grouptitle, align=center, anchor=north] at ($(reb-nw)!0.5!(reb-se |- reb-nw)+(0,-0.15)$)
   {Readout Board (REB) with Analog\\Signal Processing Integrated Circuit (ASPIC)};
 

@@ -19,20 +19,20 @@ Key challenges to delivering the necessary level of calibration include:
     Products must be reproducible, versioned, and continuously validated as instruments and algorithms evolve.
 \end{enumerate}
 
-The LSST Data Management (DM) Science Pipelines \citep{PSTN-019} implement this functionality using production pipelines and supporting tools to generate, verify, and publish calibration products for routine processing.
+The LSST Data Management (DM) Science Pipelines \citep{PSTN-019,2017ASPC..512..279J,2018PASJ...70S...5B,2019ASPC..523..521B,2019ApJ...873..111I} implement this functionality using production pipelines and supporting tools to generate, verify, and publish calibration products for routine processing.
 The design benefits from lessons learned in LSST Data Preview 1 \citep[DP1;][]{2026AJ....171..360V} and precursor surveys, including the Hyper Suprime-Cam Subaru Strategic Program \citep{2012SPIE.8446E..0ZM,2022PASJ...74..247A,2018PASJ...70S...5B}, the Dark Energy Survey \citep{2005astro.ph.10346T,2012PhPro..37.1332T,2018PASP..130g4501M}, and the Panoramic Survey Telescope and Rapid Response System \citep[Pan-STARRS;][]{2016arXiv161205560C,2020ApJS..251....3M,2020ApJS..251....4W}.
 
 The first end-to-end demonstration of Rubin data processing on a substantial, internally consistent LSSTCam dataset is Data Preview 2 \citep[DP2;][]{RTN-115}.
-DP2 includes $28{,}698$ visits taken during commissioning and pre-survey operations, with $1{,}964$, $4{,}166$, $4{,}856$, $7{,}959$, $5{,}809$, and $3{,}944$ visits in the $u$, $g$, $r$, $i$, $z$, and $y$ bands, respectively.
-This paper describes the calibration-production algorithms and the operational approach used to generate DP2 calibration products.
+DP2 includes $28{,}698$ exposures taken during commissioning and pre-survey operations, with $1{,}964$, $4{,}166$, $4{,}856$, $7{,}959$, $5{,}809$, and $3{,}944$ exposures in the $u$, $g$, $r$, $i$, $z$, and $y$ bands, respectively.
+This paper describes the calibration-production algorithms and the operational approach used to generate LSSTCam calibration products at the start of the LSST, which are the same as those used for DP2.
 
-Our goals are to (1) make the DP2 calibration products interpretable to science users, (2) quantify our confidence in the quality of released data products, (3) make the processing reproducible for pipeline developers and operators, and (4) provide a reference point for expected improvements on the path to the first LSST public data release.
+Our goals are to (1) make LSSTCam calibration products interpretable to science users, (2) quantify our confidence in the quality of released data products, (3) make the processing reproducible for pipeline developers and operators, and (4) provide a reference point for expected improvements on the path to the first LSST public data release.
 
 This paper is organized as follows.
-Section~\ref{sec:lsstcam} introduces LSSTCam, its CCD readout architecture and sequencers, the DP2 calibration epochs, and the physical detector model that organizes calibration production and ISR.
+Section~\ref{sec:lsstcam} introduces LSSTCam, its CCD readout architecture and sequencers, the calibration epochs through the start of the LSST, and the physical detector model that organizes calibration production and ISR.
 Section~\ref{sec:calsys} describes the calibration system (CalSys), including the Flat-Field Illuminator and the Collimated Beam Projector used to acquire calibration exposures.
 Section~\ref{sec:isr-science} describes the instrument signature removal pipeline applied to DP2 science data.
 Section~\ref{sec:calibration-production} describes the algorithms used to produce each calibration product and apply it during ISR.
 Section~\ref{sec:discussion} discusses known limitations of the DP2 calibrations and the sensitivity of calibration products to changes in the camera sequencer.
 Section~\ref{sec:verify-accept-certify} describes how calibration products are verified, accepted, certified, and distributed, and how calibration quality is monitored over time.
-Section~\ref{sec:conclusion} summarizes the DP2 calibration quality and outlines expected improvements toward Data Release~1 (DR1).
+Section~\ref{sec:conclusion} summarizes the current calibration quality and outlines expected improvements toward Data Release~1 (DR1).

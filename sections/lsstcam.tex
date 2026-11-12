@@ -18,7 +18,7 @@ The corners of the mosaic contain two CCDs for guiding and one split-wavefront C
 
 % CCDs
 Each LSSTCam CCD is divided into 16 segments that are read out simultaneously, each through its own serial register, on-chip output amplifier, and REB electronics.
-We call each segment and its readout chain is referred to by either channel or its amplifier.
+Each segment and its readout chain is referred to as either a channel or an amplifier.
 The latter follows common usage in the CCD literature and in the LSST Science Pipelines, where the segments are named C00--C07 and C10--C17 and calibration products such as gains, read noise, and crosstalk coefficients are indexed per amplifier.
 Throughout this paper the two terms are interchangeable. We will use ``channel'' when describing the readout electronics and signal path, and ``amplifier'' when referring to the unit of calibration and its region of pixels on the detector.
 The imaging region of each channel is 2002 pixels high and 512 pixels wide for E2V sensors and 2000 pixels high and 509 pixels wide for ITL sensors, giving a full imaging area of $4096 \times 4004$ pixels (E2V) and $4072 \times 4000$ pixels (ITL).
@@ -103,7 +103,7 @@ The clock-injected offset is an unintended signal: transitions of the parallel a
 Bias injection, by contrast, is a deliberate stage of the REB: after the dual-slope integrator, a fixed DC pedestal of $\sim$10--20k ADU is added so that the signal, including negative excursions from noise and the clock-injected offset, stays within the input range of the ADC.
 Finally, the analog-to-digital converter (ADC) maps the analog signal to digitized counts, but it introduces non-linearities in the response at high, mid, and low signal levels \citep{RTN-055}.
 
-The overall gain $g$ describes the net conversion from electrons to digital ADU.
+The overall gain $g$ describes the net conversion from ADU to electrons.
 Altogether, the signal processing chain can be summarized as a change of units of the image from electrons to counts.
 Detector artifacts along the chain make this conversion ill-defined.
 The goal of ISR is to recover the true incident signal by undoing these effects in reverse order, each in its native units.
