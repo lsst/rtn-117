@@ -16,7 +16,7 @@ The raw frames retain the serial and parallel overscan, which are virtual pixels
               \fig{figures/isr_2026010700038_det45_afterisr.pdf}{0.475\textwidth}{(b) E2V, post-ISR}}
     \gridline{\fig{figures/isr_2026010700038_det79_raw.pdf}{0.515\textwidth}{(c) ITL, raw}
               \fig{figures/isr_2026010700038_det79_afterisr.pdf}{0.475\textwidth}{(d) ITL, post-ISR}}
-    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row).
+    \caption{One LSSTCam exposure (2026010700038) before and after instrument signature removal (ISR), shown for one detector from each vendor: E2V detector 45 (R12\_S00, top row) and ITL detector 79 (R20\_S21, bottom row). Exposure identifiers consist of the observing date (YYYYMMDD) followed by a five-digit sequence number for that night.
     The left panels (a, c) show the raw readout in analog-to-digital units (ADU), with the serial (solid outline) and parallel (dashed outline) overscan regions of each of the 16 amplifiers marked.
     The right panels (b, d) show the same detectors after ISR, in electrons, with the overscan trimmed and the mask planes set during processing overlaid in color (see legend).
     All panels share the same pixel scale.}
@@ -32,8 +32,7 @@ Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as app
     \caption{Outline of the instrument signature removal (ISR) pipeline applied to LSSTCam science images for DP2.
     The steps in the pipeline follow a very specific sequence determined by the physics of the instrument signature and where it enters in the photon transfer chain.
     Blue boxes denote static ISR steps that apply pre-computed calibration inputs; orange boxes denote steps whose application depends on the science exposure itself (for example, overscan subtraction, dithering, or saturation-footprint growth); white boxes mark the raw input and post-ISR output.
-    A dashed border marks a computation rather than an artifact correction (integer-to-float conversion, dithering, overscan statistics, and variance plane estimation).
-    The amplifier-offset step remains optional and applies pre-computed per-amplifier offsets when enabled.}
+    A dashed border marks a computation rather than an artifact correction (integer-to-float conversion, dithering, overscan statistics, and variance plane estimation).}
     \label{fig:isr-pipeline}
 \end{figure*}
 
@@ -46,15 +45,20 @@ Each item names the correction applied and the reason it sits at this location i
 
     \item \textbf{Dither counts.}
     A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel. The variance added by a uniform distribution of width 1~ADU is $1/12$~ADU$^2$.
-    This breaks the correlation between true signal and integer quantization before continuous corrections are applied, reducing systematic bias when later steps interpolate, convolve, or divide the image.
-    This step is essentially a marginalization step before a full low-signal differential non-linearity correction can be measured and implemented.
+    Dithering after digitization decorrelates the quantization error from the true signal before continuous corrections are applied, which reduces artifacts when later steps interpolate, convolve, or divide the image.
+    It does not remove the bias caused by unequal ADC code widths, which requires a dedicated low-signal differential non-linearity (DNL) correction.
 
     \item \textbf{Serial overscan correction.}
-    The serial overscan records the total electronic offset of each row, which combines two contributions that originate differently (\S\ref{sec:lsstcam:detector-model}): the deliberate DC pedestal added by the REB's bias injection stage, and the unintended clock-injected offset from clock transitions coupling into the video signal.
+    The serial overscan records the total electronic offset of each row, which combines two contributions that originate differently (\S\ref{sec:lsstcam:detector-model}).
+    There is a deliberate DC pedestal added by the REB's bias injection stage and the unintended clock-injected offset from clock transitions coupling into the video signal.
     This combined offset, plus smaller row-to-row variations, is derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
     The spatially static part of the clock-injected structure that the overscan does not capture is removed later by the combined bias.
     Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout.
     At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from extended pixel edge response (EPER) statistics (\S\ref{sec:calibration-production:cti}).
+
+    The median overscan signal over all the amplifiers in the focal plane is around $26\,000$~ADU\@.   % 26284.55 +/- 1312.6 ADU / 39568.62 +/- 1532 e-
+    After overscan correcting the serial overscan region, we can estimate the detector read noise by measuring the dispersion in these pixels.
+    Using the gain to convert these values to electrons, we find a mean read noise of $5.19 \pm 0.64~\mathrm{e}^{-}$.  % 5.18941097 +/- 0.6366 e-
 
     \item \textbf{Mask saturated and suspect pixels.}
     Pixels above the photon transfer curve (PTC) turnoff saturation threshold (\S\ref{sec:calibration-production:ptc}) are flagged as both saturated (``SAT'') and suspect (``SUSPECT'') in the pixel bit mask before further signal corrections.
@@ -77,23 +81,24 @@ Each item names the correction applied and the reason it sits at this location i
     This step must precede deferred-charge correction (\S\ref{sec:calibration-production:cti}) because the deferred-charge model and its calibration were fit assuming that signal-dependent readout non-linearities have already been removed.
 
     \item \textbf{Deferred charge correction.}
-    Residual charge left in pixels during serial readout---from global charge transfer inefficiency, local electronic offset in the output amplifier, and serial charge traps on ITL sensors---is corrected using the parameters fit in \S\ref{sec:calibration-production:cti}.
+    Residual charge left in pixels during serial readout is corrected using the parameters fit in \S\ref{sec:calibration-production:cti}.
+    The global charge transfer inefficiency and the local electronic offset in the output amplifier are corrected on all sensors, while serial charge traps are corrected only on ITL sensors.
     This step sits late in the readout-electronics portion of the chain because deferred charge is imprinted during serial transfer, after non-linearities in the output path have acted on the signal.
-    We do not correct deferred charge on E2V sensors because the deferred charge level is already below the $5\times10^{-6}$ threshold required by the LSST Science Requirements Document \citep{LPM-17}, as described in \S\ref{sec:calibration-production:cti}.
+    We do not correct serial traps on E2V sensors because their trap sizes are too small to measure above the noise and the residual deferred charge is already below the $5\times10^{-6}$ threshold required by the LSST Science Requirements Document \citep{LPM-17}, as described in \S\ref{sec:calibration-production:cti}.
 
     \item \textbf{Assembly.}
-    At this point, we no longer need the overscan regions, so the final detector is assembled by trimming the prescan and overscan regions and mosaicking the trimmed amplifiers into a contiguous pixel array.
+    With all operations that use the overscan regions completed, the science data regions are joined into a single contiguous image, with the overscan and prescan regions removed.
 
     \item \textbf{E2V edge-bleed mask.}
     We flag the ``SAT'' mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
 
     \item \textbf{ITL dip, SatSag, and edge-bleed masks.}
-    We flag the ``ITL\_DIP'' mask plane bit for pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip''), a sag in apparent signal after saturation (``SatSag''), and edge bleeding analogous to the E2V case.
+    We flag pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip'') with the ITL\_DIP and SUSPECT mask planes. Pixels affected by a sag in apparent signal after saturation (``SatSag'') and by edge bleeding analogous to the E2V case are added to the SAT mask plane.
     These vendor-specific masks follow deferred-charge correction because the artifacts they mark are readout- and saturation-related structures that should be evaluated on linearized, CTI-corrected data.
 
     \item \textbf{Bias correction.}
     A combined bias frame (\S\ref{sec:calibration-production:bias}) is subtracted to remove the fixed-pattern electronic offset that remains after overscan subtraction.
-    Overscan correction handles the spatially static electronic structure imprinted in the images before charge readout.
+    Overscan correction instead adjusts for changes in the bias voltage of the CCD output amplifier, which can drift or shift with the power supply and produce row-to-row bias differences.
 
     \item \textbf{Dark correction.}
     The combined dark frame (\S\ref{sec:calibration-production:dark}), scaled by the dark time of the science exposure, is subtracted to remove thermal dark current accumulated while charge is collected.
@@ -162,7 +167,7 @@ Table~\ref{tab:isr-mask-planes} summarizes the mask planes set during ISR, which
         SAT         & Pixels above the PTC turnoff (\S\ref{sec:calibration-production:ptc}), plus widened saturation trails, edge bleeds, and ITL saturation sag \\
         SUSPECT     & Pixels above the suspect level, set to the PTC turnoff (\S\ref{sec:calibration-production:ptc}), plus ITL dip pixels \\
         ITL\_DIP    & Columns with depressed response on ITL sensors (the ``ITL dip'') \\
-        CROSSTALK   & Pixels whose crosstalk source pixel (\S\ref{sec:calibration-production:xtalk}) exceeds $45{,}000$ electrons \\
+        CROSSTALK   & Pixels where the crosstalk correction (\S\ref{sec:calibration-production:xtalk}) exceeds 1 electron \\
         UNMASKEDNAN & Non-finite pixel values not already masked \\
         EDGE        & The ``picture frame'' of pixels around the detector perimeter \\
         INTRP       & Pixels whose values were replaced by interpolation \\
@@ -191,64 +196,94 @@ Figure~\ref{fig:calib-dependency} summarizes calibration-product dependencies.
 % NOTE: order follows calib-dependency figure
 
 \subsection{Curated Calibrations} \label{sec:calibration-production:curated-calibs}
+Calibrations that are derived from measurements that cannot be performed with the camera on the telescope, or that are constructed outside of the standard calibration production system are classified as curated calibrations.
+The source files for these calibrations are stored in the github, and must be imported into the butler for use.
+Where possible, any precursor files and processing scripts are also retained to ensure that the translation from the original sources to the files used for LSSTCam processing can be replicated.
+These calibrations are either assumed to not change with time (such as the camera geometry or filter transmissions), or are intended as a starting point for further calibration development (such as the initial manual defect lists).
+
+Table \ref{tab:curated_calibrations} lists the curated calibration types that were used in DP2 processing, along with a brief description of each.
+
+\begin{deluxetable*}{ll}[t!]
+    \tablecaption{Curated Calibrations in DP2\label{tab:curated_calibrations}}
+    \tablehead{
+        \colhead{Calibration Type} & \colhead{Description}
+    }
+    \startdata
+    \texttt{camera} & The detector properties and image geometries. \\
+    \texttt{manual\_defects} & An initial set of defects that are visible, but do not have algorithmic code to find. \\
+    \texttt{crosstalk} & The initial laboratory measured crosstalk coefficients from \citet{2021JATIS...7d48002S}. \\
+    \texttt{transmission\_filter\_detector} & The filter throughput evaluated for each detector. \\
+    \texttt{transmission\_optics} & The throughput of the telescope and camera optics. \\
+    \texttt{transmission\_sensor} & The quantum efficiency of each detector over the full wavelength range. \\
+    \enddata
+\end{deluxetable*}
 
 \subsection{Auxiliary Data Products} \label{sec:calibration-production:auxiliary-data-products}
+In addition to the exposures taken with the calibration system, we have some additional sources of information that we can use to characterize the camera.
+We have three photodiodes and electrometers on the telescope, with one in the integrating sphere of the CBP, one in the CBP calibration system, and a third connected to the LED and laser projector for the flatfield screen.
+These provide an independent measure of the beam intensity separate from the camera itself.
+There is also a fiber spectrograph that can be used to measure the spectrum of the beam, allowing us to confirm the peak wavelength and width of the light being projected onto the flat field screen.
+Finally, each exposure has an associated shutter motion profile that can be used to construct the time of the midpoint crossing of the shutter, and can therefore be used to measure the small time differences between different parts of the focal plane.
+
+
 
 \subsection{Crosstalk} \label{sec:calibration-production:xtalk}
 Large astronomical sensors are read out through multiple amplifiers in parallel (see Section~\ref{sec:lsstcam}), reducing the time needed to completely read the sensor.
 One downside of this design strategy is the possibility of inducing crosstalk between the different channels.
 In LSSTCam, this crosstalk is produced by electronic coupling that occurs in at least two different places in the readout hardware: (1) between the channels in the cable connecting the detectors to the REB and (2) across opposite sides of each detector with neighboring analog signal-processing integrated circuits (ASPICs).
-The result of these couplings is that the data for a particular amplifier show a scaled copy of neighboring amplifiers added to the image.\todo{Give the typical and maximum crosstalk coefficient magnitudes measured for LSSTCam (e.g.\ $\sim10^{-4}$ nearest-neighbour, $<10^{-5}$ elsewhere), and how the two coupling mechanisms differ in strength.}
-As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners.
-This may make the crosstalk signal visible in the target amplifier flipped relative to the source amplifier.
-These two sources cannot be disentangled from one another, so we measure and correct both forms of crosstalk as a single artifact.
+The result of these couplings is that a scaled copy of the data in a source amplifier gets added to the data in a target amplifier.
+As all amplifiers are clocked through the readout process simultaneously, this scaled copy is aligned with the location of the readout corners, making the crosstalk signal visible in the nearby amplifier flipped relative to the source amplifier.
 
+The crosstalk is most significant in the amplifiers nearest the source, typically a fraction of $\sim10^{-4}$ times the brightness of the object on the source amplifier, with the median signal dropping by a factor of 10 when considering distant amplifiers on the same side of the midline, and dropping off by another factor of 10 in target amplifiers across the midline.
+However, the induced crosstalk signal contains a linear and quadratic component that grows with the source signal.
+The linear coefficients dominate the majority of the observed crosstalk signal, typically of order $10^{-4}$, while the quadratic coefficients are of order $\sim10^{-11}\,(e^-)^{-1}$.
+
+The two sources of crosstalk cannot be disentangled from one another, so we measure and correct both forms as a single artifact.
 Correcting for this additional signal is easy with a known set of crosstalk coefficients between a given source and target amplifier. Each source amplifier that has a non-zero coefficient is flipped to match the target amplifier, scaled by that coefficient, and added to the results from all other source amplifiers to create a subtrahend image that contains all of the crosstalk signal observed on the target amplifier.
 By repeating this for all amplifiers, we can build up a full-detector subtrahend image that can then be subtracted.
-As this correction may be imperfect, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.\todo{Quantify ``may be imperfect'': the residual crosstalk after correction (as a fraction of the uncorrected signal, cf.\ Figure~\ref{fig:crosstalk-linear-nonlinear-fit}) and the typical fraction of pixels flagged CROSSTALK in a science image.}
+
+The correction reduces the residual crosstalk signal in nearest neighbor amplifiers by a factor of $10^3$, while remaining crosstalk at further distances is undetectable.
+To mark regions affected by large corrections and potentially residual crosstalk signal, we set a CROSSTALK mask plane for all locations where the subtrahend image is greater than 1 electron.
+The majority of these CROSSTALK masks cover regions where saturated star cores and bleed trails would fall, with the largest bleeds causing the mask to be added to up to 1.5\% of the detector area.
 This provides a way for the downstream object detection and measurement code to identify sources that may have been significantly altered by the crosstalk correction.
 
-As this crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
+As the worst crosstalk occurs in the cable connecting the detector to the REB, prior to being digitized into ADU, the images need to be gain corrected prior to the crosstalk correction to ensure they are in electron units.
 This naturally places the crosstalk correction early in the ISR processing. This is also important because very bright sources can create bleed trails that deposit charge that is not fully clocked out, and that slowly leaks out as subsequent rows are read out.
 These bleed trails can extend into the parallel overscan region, which can in turn create crosstalk signal in neighboring amplifiers.
 Performing crosstalk correction prior to overscan correction prevents these amplifiers from oversubtracting the affected columns.
 
-The crosstalk coefficients used during commissioning were calibrated from lab measurements at SLAC prior to the camera being shipped to the summit and were quadratic with the source flux, as discussed in \citet{2021JATIS...7d48002S} (CZW: do we need to introduce the measurement process first?).
-However, the switch from 2\,s readouts to 3\,s readouts via a camera sequencer change invalidated these coefficients, as the change in clocking also changed the scale of the crosstalk signal, requiring this calibration to be remeasured.\todo{State by how much the coefficients changed between the 2\,s and 3\,s sequencers (a typical ratio or percent shift), which is what justifies the remeasurement.}
+To measure the 3s sequencer crosstalk with the camera on the telescope, we used three nights of spot data taken with the CBP system.
+Each exposure placed one spot on each detector, with ten linearly spaced flux levels between 30,000 electrons (the minimum source level used to measure crosstalk) up to 130,000 electrons at each pointing.
 
-This measurement used three nights (CZW: check numbers in this paragraph) of spot data taken with the CBP system.
-Each exposure placed one spot on each detector, with ten linearly spaced flux levels (CZW: add figure or describe levels) per pointing.
 After the flux sequence was completed, the CBP spots were shifted to land on a different amplifier, with the process repeated in order to provide each amplifier a bright source to use to look for crosstalk signals.
-A total of XX exposures were used to generate these updated crosstalk coefficients, with the number of pixels used as ``source pixels'' (CZW: which you haven't explained yet) shown in Figure~\ref{fig:crosstalk-source-pixels}.
+A total of 655 exposures were used to generate these updated crosstalk coefficients.
 
-\begin{figure}[t]
-    \centering
-    % TODO: add exposure-time vs.\ mean-signal figure asset
-    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
-    \caption{Number of source pixels used to measure the crosstalk coefficients for each amplifier.
-      Note that this number drops toward the edge of the focal plane, due to difficulties properly illuminating CBP spots in these locations.\todo{Quantify the drop-off: typical source-pixel counts at the focal-plane centre vs.\ the edge, and the minimum count below which a coefficient was considered unconstrained.}}
-    \label{fig:crosstalk-source-pixels}
-\end{figure}
-
-As discussed above (CZW: ???), each of these exposures was minimally processed to correct the serial overscan, apply the gains to convert the units to electrons, and trim and assemble the amplifiers.
+As discussed above, each of these exposures was minimally processed to correct the serial overscan, apply the gains to convert the units to electrons, and to trim and assemble the data segments.
 All pixels above a threshold of $30{,}000$ electrons were then identified and used to construct crosstalk ratios $r_{ij} = T(\hat{x}, \hat{y})_j / S(x, y)_i$, where $S(x, y)_i$ is the flux value in a pixel at $(x, y)$ in amplifier $i$, and $T(\hat{x}, \hat{y})_j$ is the flux value at the same ``readout coordinate'' $(\hat{x}, \hat{y})$ in amplifier $j \ne i$.
 These ratios therefore show the measured response to the source signal $S$ at the expected location of a crosstalk source at a target location $T$.
 These fluxes and ratios are accumulated for the entire set of exposures and detectors.
-Prior to any further study, the ratios are clipped to ensure contaminating features, such as stray light and reflections of other spots, are removed.\todo{Report what fraction of ratio measurements the clipping removes, so the reader can judge how aggressive the cleaning is.}
+Prior to any further study, the ratios are clipped to ensure contaminating features, such as stray light and reflections of other spots, are removed.
 Any pixel with a measured ratio larger than 1.0 is excluded, as these would represent an unphysical situation in which the crosstalk signal was brighter than the source signal.
-The remaining signals were XX-sigma clipped based on the interquartile distance, under the assumption that the ratio values are normally distributed.
+The remaining ratios for each amplifier pair were iteratively 2-sigma clipped, with sigma derived from the inter-quartile distance under the assumption that the ratio values are normally distributed, before fitting the coefficients.
+Each detector has $16 \times 16 = 256$ source-target amplifier pairs, of which the 16 self-to-self terms are identically zero.
+With a linear and a quadratic coefficient for each of the remaining 240 pairs on the 188 operational science detectors, characterizing the crosstalk on the full focal plane requires $90{,}240$ coefficients.
+The fitted coefficients for each amplifier pair were then compared across all detectors from the same vendor, and a coefficient was clipped if its linear term deviated from the vendor median by more than 3 sigma or its quadratic term by more than 6 sigma, with sigma derived from the median absolute deviation.
+In total, $2{,}703$ (3\%) of the coefficients had to be clipped.
+Each clipped coefficient is replaced by the median value of the same source-target amplifier pair across all detectors from the same vendor, computed separately for ITL and E2V.
 
 If the crosstalk response were perfectly linear, the average of these clipped ratios would directly yield the crosstalk coefficient between the source and target amplifiers.
-However, as shown in the lab study of the crosstalk, and demonstrated in Figure~\ref{fig:crosstalk-linear-nonlinear-fit}, such a simple model fails to fully remove the crosstalk, as the source brightness changes over the profile of the spot.\todo{Quantify the improvement from the non-linear model: residual amplitude (in electrons or as a fraction of source flux) for the linear vs.\ non-linear coefficients shown in the two panels of the figure.}
+However, as shown in the lab study of the crosstalk, and demonstrated in Figure~\ref{fig:crosstalk-linear-nonlinear-fit}, such a simple model fails to fully remove the crosstalk, as the source brightness changes over the profile of the spot.
 
 \begin{figure}[t]
     \centering
-    % TODO: add exposure-time vs.\ mean-signal figure asset
-    \fbox{\parbox{0.75\columnwidth}{\centering\vspace{1.5in}\small\textit{Figure pending}\vspace{1.5in}}}
-    \caption{An example crosstalk residual on LSSTCam detector XX after correction with a linear crosstalk coefficient.
-      The oversubtraction in the core and undersubtraction in the wings of the source illustrate that the strength of the crosstalk signal is dependent on the flux of the source pixel.
-      The right panel shows the same spot, as corrected with the final non-linear crosstalk coefficients.}
-    \label{fig:crosstalk-linear-nonlinear-fit}
+     \includegraphics[width=0.95\columnwidth]{figures/rtn117-crosstalk_application.png}
+     \caption{An example crosstalk before and after correction on LSSTCam detector 23 (R03\_S12) for exposure 2025080700300, in a calibration image taken with the CBP near a saturated spot (with peak pixel value at 140,000e$^-$).
+      The top panel shows the uncorrected post-ISR image, the middle panel shows the correction with just a linear component, and the bottom panel shows the correction with the two-term non-linear model.
+      The image median has been subtracted from each cutout.
+      In the uncorrected image, the bright nearest-neighbor source has a peak around 65e$^-$, with the depressions in the other amplifiers dropping 8\,e$^-$ below the image median.
+      The depressions in the linear corrected image are improved over no correction, but are still 5e$^-$ below the image median.
+      The vertical bars indicate the boundary between adjacent amplifiers.}
+      \label{fig:crosstalk-linear-nonlinear-fit}
 \end{figure}
 
 To provide the required crosstalk coefficients that are non-linear in source flux, we quantified the evolution of crosstalk coefficients with a linear term and a non-linear term in the fit to the flux ratios.
@@ -260,7 +295,21 @@ Defects are defined as pixel regions with anomalously high or low response compa
 Defects can be persistent and isolated to specific pixel areas, or they can be transient and appear in different locations across exposures.
 Defects are identified through a combination of automated detection in science images and automatic and manual inspection of calibration frames.
 These defect pixels are masked and marked as \textsc{BAD} for the downstream analysis and interpolated over for visual inspection.
-\todo{Quantify the defect population for DP2: total number of masked pixels/columns, the fraction of the focal plane they represent, the split between manual and automatic detections, and how that fraction varies between E2V and ITL and across epochs.}
+
+% Science images:
+%     0, 5, 25, 50, 75, 95, 100
+% SAT 0, 0, 0, 408, 1808, 7883, 246839
+% BAD 3563, 3863, 4621, 4705, 17682, 24748, 1025024
+% SUS 0, 0, 0, 120, 645, 3792, 200555
+
+% From the defects themselves:
+% coll      0-defects  minfrac  medfrac maxfrac   E2V                           ITL
+% manual:   153 dets   0        0,      5.29e-2   95  0       0       4.03e-3   58   0       0       5.29e-2
+% run7:     0          4.96e-3  7.17e-3 6.85e-2   0   6.95e-3 7.22e-3 1.48e-2   0    4.96e-3 5.11e-3 6.85e-2
+% 20250506  0          4.96e-3  6.90e-3 6.85e-2   0   6.70e-3 6.93e-3 1.44e-2   0    4.96e-3 5.13e-3 6.85e-2
+% 20251124  0          7.39e-3  7.46e-3 6.38e-2   0   7.39e-3 7.42e-3 3.44e-2   0    7.42e-3 7.53e-3 6.38e-2
+% 20251215  0          7.39e-3  7.46e-3 6.38e-2   0   7.39e-3 7.42e-3 3.44e-2   0    7.42e-3 7.53e-3 6.38e-2
+
 %We describe how defect masks are generated (bad pixels/columns, saturation trails, and other artifacts), the thresholds used, and how masks are combined across exposures.
 
 Static defects are detected automatically in the combined bias, dark, and flat frames and then merged.
@@ -284,7 +333,7 @@ For example, an approximately 500~pixel-wide horizontal scratch in detector 0 (R
 Finally, we mask a border of pixels around the edge of each detector, which we call the \textit{picture frame}.
 Electric fields are distorted near the edges of the CCDs, which changes the pixel response there.
 These edges are also difficult to calibrate, because corrections that rely on convolution, such as the brighter-fatter correction, are poorly defined near the image boundary.
-The picture frame mask is therefore approximately twice the range of the brighter-fatter effect (\S\ref{sec:calibration-production:bf}), corresponding to 7 rows at the top and bottom and 8 columns at the left and right of each detector.
+The picture frame mask covers 7 rows at the top and bottom and 8 columns at the left and right of each detector.
 
 Additional masking is applied to an exposure in the ISR processing, as described in \S\ref{sec:isr-science}.
 Further statistical analyses of the defects and a description of the defect monitoring over long time baselines are given in \S\ref{sec:verify-accept-certify:verification}.
@@ -292,7 +341,7 @@ Further statistical analyses of the defects and a description of the defect moni
 \subsection{Non-Linearity} \label{sec:calibration-production:linearity}
 
 Non-linearity (NL) describes a deviation from simple proportionality when mapping amplified voltage integrated during readout to the number of analog-to-digital units (ADU) or counts.
-Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic of each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.\todo{Quantify the drifts: the fitted $\alpha$ (per K) and $\beta$ (per day) sensitivities and the resulting non-linearity change over a typical campaign, plus the range of per-amplifier turnoff levels implied by ``characteristic to each readout amplifier''.}
+Non-linearity is signal-dependent and is often not a simple function of signal level; it can change suddenly above a large signal level that is characteristic of each readout amplifier; and it can drift with sensor temperature and with time, as slow electronic shifts in the bias level accumulate over a long calibration campaign.
 In practice it introduces pixel-level measurement bias (up to 0.5\% from the true signal), invalidates Poisson counting statistics, and can interfere with measurement of gain (which shouldn't change or drift with signal level).
 Correcting NL to better than 0.01\% is therefore a prerequisite for reliable downstream calibration products and science analyses.
 
@@ -304,7 +353,7 @@ We have independent measurements of the photodiode current produced by our calib
 however, we found these measurements to be noisy and unreliable. Instead, we use the exposure time, which is precisely measured and makes a natural proxy for photodiode measurements.
 We therefore calibrate NL by fitting a relation between exposure time ($\Delta t$, abscissa) and the mean measured flat-field signal ($\mu$, ordinate).
 
-We measured $543\times2$ flat-field exposures at evenly spaced illumination levels. We went as low as 100~analog-to-digital units (ADU) and continued beyond pixel saturation.
+We measured $543\times2$ $r$-band flat-field exposures at evenly spaced illumination levels. We went as low as 100~analog-to-digital units (ADU) and continued beyond pixel saturation.
 At each illumination level, a pair of flats was acquired by varying both LED current and exposure time to achieve the targeted levels, measuring the mean signal level as $\mu_i = \mathrm{avg}(F_i^{(1)},F_i^{(2)})$~(in ADU).
 These data were acquired with illumination levels decided in random order to decouple signal-dependent non-linearity and time-dependent drifts in illumination.
 
@@ -312,10 +361,12 @@ These data were acquired with illumination levels decided in random order to dec
     \centering
     \includegraphics[width=0.95\columnwidth]{figures/reference-amp-non-linearity_det94.pdf}
     \caption{Absolute non-linearity fit for the reference amplifier~C07 on LSSTCam detector~94.
-    \textit{Left}---mean flat-field signal $\mu_{\mathrm{ref}}$ as a function of exposure time $\Delta t$, colored by LED illumination group ($k_1$, $k_2$, $k_3$).
+    The top panel shows the mean flat-field signal $\mu_{\mathrm{ref}}$ as a function of exposure time $\Delta t$, colored by LED illumination group ($k_1$, $k_2$, $k_3$).
     Each group has its own ratio of signal to exposure time, which produces the discontinuities between groups.
     The hatched region marks signal above the linearity turnoff ($\mu > 1.05 \times 10^5$~ADU), which is excluded from the fit.
-    \textit{Right}---fractional residuals of the spline fit, $(r_i - 1) \times 10^4$ (Equation~\ref{eq:spline-nl-fit}), as a function of $\mu_{\mathrm{ref}}$, with the same group colors.}
+    The middle and bottom panels show the fractional residuals of the spline fit (Equation~\ref{eq:spline-nl-fit}) as a function of $\mu_{\mathrm{ref}}$, with the same group colors.
+    The middle panel shows the first iteration, scaled by $10^2$, and the bottom panel shows the second iteration after normalizing the abscissa, scaled by $10^4$.
+    The normalization reduces the residuals by a factor of $\sim$100.}
     \label{fig:linearity-exptime-vs-signal}
 \end{figure}
 
@@ -333,9 +384,9 @@ Points above the turnoff are excluded from the NL fit because there is a maximum
     \centering
     \includegraphics[width=0.95\columnwidth]{figures/abs-rel-non-linearity_det94.pdf}
     \caption{Double-spline non-linearity model for LSSTCam detector~94.
-    \textit{Left}---absolute non-linearity $S_{\mathrm{abs}}(\mu)$ of the reference amplifier~C07.
+    The top panel shows the absolute non-linearity $S_{\mathrm{abs}}(\mu)$ of the reference amplifier~C07.
     Gray points are per-exposure measurements (spline value plus fit residual), the black line is the Akima spline, and open circles mark the spline nodes.
-    \textit{Right}---relative non-linearity $S_{\mathrm{rel}}(\mu)$ of the remaining amplifiers with respect to C07, with nodes shown as filled points.
+    The bottom panel shows the relative non-linearity $S_{\mathrm{rel}}(\mu)$ of the remaining amplifiers with respect to C07, with nodes shown as filled points.
     Blue shades are amplifiers C10--C17 and orange shades are C00--C06; darker shades correspond to higher amplifier numbers.}
     \label{fig:linearity-abs-rel}
 \end{figure}
@@ -387,7 +438,7 @@ Every amplifier on a detector has a shared absolute spline fit based on the refe
     \State \Call{Compute linearity turnoff}{$\mu_a$, $\Delta t$}
 \EndFor
 \State choose reference amplifier $\mathrm{ref}$ with the highest linearity turnoff
-\State choose reference exposure $i_0$, the flat whose mean signal $\mu_{\mathrm{ref}} = 10^4$ on amplifier $\mathrm{ref}$ is nearest the target signal level
+\State choose reference exposure $i_0$, the flat whose mean signal $\mu_{\mathrm{ref}}$ on amplifier $\mathrm{ref}$ is nearest the target level of $10^4$
 \For{each exposure $i$}
     % \State compare flat $i$ to the reference exposure $i_0$
     % \State $\mu_{\mathrm{ref},i} \leftarrow$  $\mu_{\mathrm{ref}}$ / $\mu_{\mathrm{ref}, i_0}$ % mean signal on amplifier $\mathrm{ref}$ in exposure $i$, normalized to $i_0$
@@ -412,21 +463,21 @@ If each amplifier is properly linearized around its true gain, we should observe
 If the linearization is miscalibrated or biased (either because exposure time is not a good proxy for the true integrated photodiode signal or because constraining $\langle S(\mu)\rangle = 0$ is biased), the amplifiers and detectors will show signal-dependent fractional offsets in mean signal levels in each flat similar to a mis-estimation of gain.
 
 We can check how the linearized mean signal levels deviate from an overall linear relation over some set of detectors in a given exposure.
-For each exposure $i$, we form the linearized signal, $\mu'_i$, on the reference amplifier on every detector and compute the fractional residual:
+For each exposure $i$, we form the linearized signal, $\mu'_i$, on the reference amplifier on each detector and compute the fractional residual:
 \begin{equation}
-    r_i = \frac{\mu'_i - m_i D_{i}}{y_i},
+    \epsilon_i = \frac{\mu'_i - m D_{i}}{\mu'_i},
 \end{equation}
-where $m_i$ is the slope of a linear fit to $\mu'_i$ versus $D_{i}$.
-We take the median $\langle r \rangle_i$ over a subset of focal-plane detectors (in the center of the focal plane) in that exposure and derive a multiplicative correction
+where $m$ is the slope of a linear fit to $\mu'_i$ versus $D_{i}$ across all exposures.
+We take the median $\tilde{\epsilon}_i$ of $\epsilon_i$ over a subset of focal-plane detectors (in the center of the focal plane) in that exposure and derive a multiplicative correction
 \begin{equation}
-    N_i = \frac{1}{1 - \langle r \rangle_i},
+    N_i = \frac{1}{1 - \tilde{\epsilon}_i},
 \end{equation} that we use to rescale the abscissa ($D_{i} \rightarrow N_i D_{i}$) and enforce that the linearization produces a coherent illumination across all detectors.
 
 We can then re-compute the double-spline fit with the normalized abscissa on the reference amplifier. We can repeat the cycle (normalize, spline, normalize, etc.) recursively several times, each time computing the normalization as \begin{equation}
-    N_i = \frac{N_i^{\mathrm{prev}}}{1 - \langle r \rangle_i}.
+    N_i = \frac{N_i^{\mathrm{prev}}}{1 - \tilde{\epsilon}_i}.
 \end{equation}
 
-A single iteration improves the precision of the linearity solution by a factor of 10, with little further gain from additional iterations.
+A single iteration improves the precision of the linearity solution by a factor of 100 (Figure~\ref{fig:linearity-exptime-vs-signal}), with little further gain from additional iterations.
 
 In ISR, given an image with pixel values measured in counts ($F_{ij}$), the final spline model can be interpolated, providing a continuous map from measured counts to the corrected counts for any pixel value from zero signal to the linearity turnoff, computed as:
 $F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
@@ -467,14 +518,14 @@ In practice, the flat-field signal levels in our data never reached the serial C
 \end{figure}
 
 The CTI solver simulates charge readout and each of the three effects at the amplifier image level for a given set of parameters.
-The model in the simulation is parameterized by a global serial CTI parameter $b$ that is a fractional charge loss per pixel transfer, a local electronic offset described by drift scale $A_L$ and decay time $\tau_L$, and a spline-based serial charge-trap decay model whose size is allowed to depend on the signal in the last imaging column.
+The model in the simulation is parameterized by a global serial CTI parameter $b$ that is a fractional charge loss per pixel transfer, a local electronic offset described by drift scale $A_L$ and decay time $\tau_L$, and a spline-based serial charge-trap decay model whose size is allowed to depend on the signal in the last imaging column \citep[see][for the full definitions of these parameters]{2021JATIS...7d48002S}.
 We perform a least-squares fit that finds the optimal set of parameters that can reproduce the measured overscan statistics trend as a function of signal level.
 Then the solver fits these parameters to the overscan image in stages.
 First, it varies only the local offset parameters, then the global CTI parameter, and then the trap capture curve from residuals between model and data.
 Exposures above configured flux limits are excluded from each stage (typically $10^4$~electrons for the global CTI fit and $1.5\times10^5$~electrons for trap fitting).
 
-The LSST Science Requirements Document requires that total deferred charge measured by EPER be kept under a total of $5\times10^{-6}$ for signal levels below saturation level on each amplifier (citation needed).
-Within the population of amplifiers in active science detectors, only 95 amplifiers do not meet this requirement without ISR correction.
+The LSST Science Requirements Document requires that total deferred charge measured by EPER be kept under a total of $5\times10^{-6}$ for signal levels below saturation level on each amplifier.
+Within the population of amplifiers in active science detectors, only 95 amplifiers do not meet this requirement without ISR correction, all of which are on ITL detectors.
 Figure~\ref{fig:cti-global-histogram} shows the distribution of inferred global CTI across all amplifiers on the LSSTCam focal plane, and we show that 26 have a global CTI offset that is already above the maximum allowed threshold.
 The majority of these (19) are bad amplifiers that are in the detector corners (C00, C07, C10, C17) positioned near the serial register, and it is possible that what is inferred as global CTI could be a serial trap that turns on at very low signal levels (below the $10^4$ electron level) and appears as an overall offset that is mistaken for global CTI.
 
@@ -488,8 +539,9 @@ The majority of these (19) are bad amplifiers that are in the detector corners (
 \end{figure}
 
 When correcting deferred charge from an image during ISR, the deferred-charge correction takes in these fit parameters and applies the inverse operators from the model.
-The global CTI and local-offset fits, and the inverse correction operators applied during ISR, are the same for both ITL and E2V sensors, but serial traps are fitted only on ITL since it was observed that E2V sensors had small trap sizes that was difficult to measure beyond noise fluctuations and already negligible enough not to require correction.
-After applying a deferred charge correction, we can re-compute the EPER statistics on the corrected dataset and find that all amplifiers meet the science requirements.
+The global CTI and local-offset fits, and the inverse correction operators applied during ISR, are the same for both ITL and E2V sensors.
+Serial traps are fitted and corrected only on ITL sensors, because the trap sizes on E2V sensors are too small to measure above noise fluctuations and are already negligible enough not to require correction.
+After applying a deferred charge correction, we can re-compute the EPER statistics on the corrected dataset and find that all amplifiers meet the deferred-charge requirement, with a serial EPER below $5\times10^{-6}$ up to saturation (Table~\ref{tab:verification_tests}).
 
 While there can be deferred charge from a charge transfer in the parallel direction (shift row-to-row), in principle this is a difficult quantity to estimate accurately from parallel overscan statistics.
 EPER statistics computed in the parallel overscan region are noisy and reveal no statistically significant charge residuals, so we do not apply any parallel deferred charge correction to science images.
@@ -507,7 +559,7 @@ All of these parameters can differ at the amplifier level. \todo{Add histogram p
 % At each illumination level, a pair of flats was acquired by varying both LED output and exposure time to achieve the target signal.
 % We measure the covariance between pixels on the difference image of the two exposures to remove variations sourced by static, fixed-pattern artifacts.
 
-Let $F_1$ and $F_2$ denote the two flats at a given illumination level, and let $\mu = \mathrm{avg}(F_1,F_2)$ denote the mean signal level (in ADU) over the image and away from the detector edges.
+Let $F_1$ and $F_2$ denote the two $r$-band flats at a given illumination level, and let $\mu = \mathrm{avg}(F_1,F_2)$ denote the mean signal level (in ADU) over the image and away from the detector edges.
 The covariance between a pixel $\mathbf{x}=(0,0)$ and a neighbor at pixel $\mathbf{x}'=(i,j)$ is:
 \begin{equation}
     C_{ij} \;=\; \tfrac{1}{2}\,
@@ -529,15 +581,18 @@ On top of the exponential approximation, we introduce an empirical saturation te
 \begin{equation}
     C_{00}^{\mathrm{sat}}(\mu) = \left\{
         \begin{array}{ll}
-            -e^{-(\mu-\mu_0)/\tau} & \mu \ge \mu_0 \\
+            1 - e^{-(\mu-\mu_0)/\tau} & \mu \ge \mu_0 \\
             0 & \mu < \mu_0
         \end{array}
     \right.,
 \end{equation}
-where $\mu_0$ marks the onset of the PTC ``rolloff'' effects and $\tau$ controls the shape of the rollover.
-The total preliminary fit model is $C_{00}^{\mathrm{prelim.}}(\mu) = C_{00}^{\mathrm{exp.\,approx}}(\mu) + C_{00}^{\mathrm{sat}}(\mu)$ to the unweighted points. This fit is performed iteratively with additional 3~sigma clipping until convergence.
-The ``PTC turnoff'' is defined as the signal level of the last unmasked point following the fit to only the exponential approximation, typically corresponding to the maximum of the variance curve and generally higher than the rolloff threshold.
-The ``PTC rolloff'' is the signal level where $C_{00}^{\mathrm{prelim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}$ deviate by more than 1\%.
+where $\mu_0$ marks the onset of the PTC ``rolloff'' effects and $\tau < 0$ sets the sharpness of the rollover.
+The saturation term is zero at $\mu_0$ and grows exponentially in magnitude above it, driving the variance down.
+The fit proceeds in two stages.
+First, $C_{00}^{\mathrm{exp.\,approx}}(\mu)$ alone is fit to the unweighted points, iterating with 5$\sigma$ outlier clipping until convergence.
+The ``PTC turnoff'' is defined as the signal level of the last unmasked point following this fit, typically corresponding to the maximum of the variance curve.
+Second, the total preliminary model $C_{00}^{\mathrm{prelim.}}(\mu) = C_{00}^{\mathrm{exp.\,approx}}(\mu) + C_{00}^{\mathrm{sat}}(\mu)$ is fit to the same points plus any points within 5000\,ADU above the turnoff whose variance does not exceed the variance at the turnoff.
+The ``PTC rolloff'' is the signal level of the last point where $C_{00}^{\mathrm{prelim.}}(\mu)$ and $C_{00}^{\mathrm{exp.\,approx}}(\mu)$ agree to within 0.5\%, capped at the PTC turnoff so that the rolloff never exceeds the turnoff.
 
 \paragraph{Final model fit}
 With the remaining points below the PTC rolloff, we fit the complete covariance expansion from \citet{2019A&A...629A..36A} (their Eq.~20):
@@ -560,8 +615,12 @@ Figure~\ref{fig:ptc-fit-example} shows an example fit for amplifier~C03 on detec
     \centering
     \includegraphics[width=\textwidth]{figures/ptc-triangle-det94-ampC03.pdf}
     \caption{Example PTC fit for amplifier~C03 on LSSTCam detector~94.
-    Measured $C_{00}$ covariance points are compared to the preliminary fit (exponential approximation plus saturation rolloff) and the final full-covariance model variance.
-    Vertical markers indicate the PTC rolloff and turnoff thresholds.}
+    The lower-left panel shows the variance $C_{00}$, and the lower-right and upper-left panels show the nearest-neighbor covariances $C_{10}$ and $C_{01}$, each as a function of the mean flat-field signal $\mu$.
+    Below each panel, a residual subpanel shows the fractional difference between the measured points and the final full-covariance model.
+    Gray points show all measured flat pairs, and open blue circles (labeled ``Reserved'') mark the points retained after outlier rejection and used in the final fit.
+    The orange curve is the final full-covariance model (Eq.~\ref{eq:cov_model}).
+    In the $C_{00}$ panel, the green dashed curve is the preliminary fit (exponential approximation plus saturation rolloff), and the gray line shows the Poisson expectation $\mu/g$.
+    Vertical dashed lines mark the PTC rolloff and turnoff thresholds.}
     \label{fig:ptc-fit-example}
 \end{figure*}
 
@@ -637,26 +696,38 @@ All $a_{ij}$ matrices from well-behaved amplifiers are 3$\sigma$-clipped element
 The output calibration data product is the set of model parameters and a model that can be evaluated per-detector.
 
 Applying this calibration to remove the effect during ISR uses the boundary-shift matrices $\mathbf{a}^{\mathrm{N}}$, $\mathbf{a}^{\mathrm{S}}$, $\mathbf{a}^{\mathrm{E}}$, and $\mathbf{a}^{\mathrm{W}}$ to redistribute flux accordingly.
-We tile these into two $(2n)\times(2n)$ convolution kernels $K^{H}$ and $K^{V}$ for the horizontal and vertical shifts, respectively; we apply sign flips and edge adjustments so each matrix sums to zero.
+We tile these into two $(2r+1)\times(2r+1)$ convolution kernels $K^{H}$ and $K^{V}$ for the horizontal and vertical shifts, respectively, where $r+1$ is the fit range of the electrostatic model in pixels; we apply sign flips and edge adjustments so each matrix sums to zero.
 These matrices need not be symmetric, which is more realistic per \citet{2024PASP..136d5003B}.
-Figure~\ref{fig:ebf-kernels} shows an example pair of these kernels for amplifier~C03 on detector~94, illustrating the dipole-like, charge-conserving structure that redistributes flux across the vertical and horizontal pixel boundaries.
+Figure~\ref{fig:ebf-kernels} shows an example pair of these kernels for detector~94, illustrating the dipole-like, charge-conserving structure that redistributes flux across the vertical and horizontal pixel boundaries.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/ebf-det94-ampC03-kVH.pdf}
-    \caption{Example BFE correction kernels $K^{V}$ (vertical) and $K^{H}$ (horizontal) derived from the electrostatic BFE model for amplifier~C03 on LSSTCam detector~94.
+    \caption{Example BFE correction kernels $K^{V}$ (vertical) and $K^{H}$ (horizontal) derived from the electrostatic BFE model for LSSTCam detector~94.
     The diverging color scale shows the fractional charge redistributed across pixel boundaries; each kernel sums to zero to conserve charge and exhibits the antisymmetric dipole structure that moves flux from the brighter pixel to its neighbors.}
     \label{fig:ebf-kernels}
 \end{figure}
-For an image $Q_{ij}$ in natural gain-corrected units of electrons, the amount of charge lost over the vertical and horizontal boundaries is:
+For an image $Q_{ij}$ in natural gain-corrected units of electrons, with $i$ indexing rows (parallel direction) and $j$ indexing columns (serial direction), the shifts of the horizontal ($E$) and vertical ($N$) boundaries of each pixel, in units of the pixel size, are
 \begin{align}
     \delta^{H}_{ij} &= \tfrac{1}{2}\!\!\sum_{kl}\!\!K^{H}_{kl}\,Q_{i-k,\,j-l}, \notag \\
     \delta^{V}_{ij} &= \tfrac{1}{2}\!\!\sum_{kl}\!\!K^{V}_{kl}\,Q_{i-k,\,j-l},
     \label{eq:bf-shift}
 \end{align}
 The $1/2$ prefactor accounts for the average BFE assuming a constant rate of charge accumulation during an exposure.
-The corrected image is assembled by removing the charge each pixel lost across its $N$/$E$ boundaries and adding what it gained from $S$/$W$ neighbors, guaranteeing charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$.
+The charge that crosses each boundary is the boundary shift multiplied by the charge density on that boundary, which we estimate as the mean of the two adjacent pixels,
+\begin{align}
+    \Delta^{H}_{ij} &= \tfrac{1}{2}\,\delta^{H}_{ij}\left(Q_{ij} + Q_{i,\,j+1}\right), \notag \\
+    \Delta^{V}_{ij} &= \tfrac{1}{2}\,\delta^{V}_{ij}\left(Q_{ij} + Q_{i+1,\,j}\right).
+    \label{eq:bf-boundary-charge}
+\end{align}
+The corrected image is then assembled by removing the charge each pixel lost across its $N$ and $E$ boundaries and adding what it gained across the $S$ and $W$ boundaries it shares with its neighbors,
+\begin{equation}
+    Q^{\mathrm{corr}}_{ij} = Q_{ij} - \left(\Delta^{V}_{ij} - \Delta^{V}_{i-1,\,j}\right) - \left(\Delta^{H}_{ij} - \Delta^{H}_{i,\,j-1}\right),
+    \label{eq:bf-correction}
+\end{equation}
+which guarantees charge conservation by construction, $\sum_{ij}Q^{\mathrm{corr}}_{ij}=\sum_{ij}Q_{ij}$, since every charge removed from one pixel is added to its neighbor.
 This correction does not require iterative convolutions. Unlike the \citet{2018AJ....155..258C} algorithm used for DP1 \citep{2026AJ....171..360V}, which requires multiple convolutions (typically 3 or more) to reach convergence, we perform exactly two convolutions with the horizontal and vertical boundary-shift matrices.
+We verify the correction on on-sky images with low sky background by measuring the size-magnitude relation of isolated stars, which must satisfy $\delta T_{\mathrm{PSF}}/T_{\mathrm{PSF}} < 10^{-3}$ up to saturation \citep{LPM-17} (\S\ref{sec:verify-accept-certify:verification}).
 
 % During science ISR, the BFE correction is applied at the step shown in Figure~\ref{fig:isr-pipeline}; see \S\ref{sec:isr-science}.
 
@@ -667,18 +738,27 @@ A bias image is a zero-second exposure read out with the shutter closed, and so 
 Overscan correction removes the component of that pedestal that varies from exposure to exposure, while the combined bias measures the static two-dimensional electronic structure that remains and is subtracted from every science image.
 
 To remove this remnant signal that is not already removed by the previous calibrations, a combined bias frame is subtracted from the exposure.
-This combined bias is constructed from the per-pixel clipped mean of a large number of input zero-second bias frames.
+This combined bias is constructed from the per-pixel clipped mean of input zero-second bias frames.
 These input bias frames have all of the corrections discussed up until this point applied.
 For LSSTCam, these combined biases have 400 input exposures, which reduces the noise in the correction.
+The resulting combined biases generated for DP2 contain very little residual signal.
+Their medians are consistent with zero ($-8.79 \times 10^{-4}$~e$^-$), and their pixel distributions are narrow, with the median minimum and maximum pixel values spanning $-2$ to $41$~e$^-$.
+The combined biases are slightly noisier than expected, with a median per-pixel standard deviation of $3.77 \times 10^{-1}$~e$^-$, compared to the $5.19/\sqrt{400} = 2.60 \times 10^{-1}$~e$^-$ expected from the single-frame read noise.
 
 \subsection{Combined Dark} \label{sec:calibration-production:dark}
 
-A dark image is an exposure taken with the shutter closed, and measures the signal that accumulates in proportion to integration time rather than to incident light. It is dominated by thermally generated electrons, called dark current, together with any glow from the readout electronics, resulting in approximately $0.02$~e$^-$\,pixel$^{-1}$\,s$^{-1}$.
-These artifacts are removed by scaling the dark to the exposure time of the science image and subtracting it.
+A dark image is an exposure taken with the shutter closed, and measures the signal that accumulates in proportion to the dark time rather than to incident light. It is dominated by dark current, the thermal generation of charge carriers in the silicon, together with any glow from the readout electronics.
+As with the bias, there is little signal in our dark current corrections, and the calibrations are consistent over time.
+The median is $1.68 \times 10^{-4}$~e$^-$\,pixel$^{-1}$\,s$^{-1}$, with minimum and maximum values from $-0.11$ to $764$~e$^-$\,pixel$^{-1}$\,s$^{-1}$.
+Pixels on the high end of that distribution will have the BAD pixel set as described above.
+These artifacts are removed by scaling the dark to the dark time of the science image and subtracting it.
+The dark time is the full interval from the end of the pre-exposure clear to the start of readout, which is slightly longer than the shutter-open exposure time (\S\ref{sec:isr-science}).
 
-Similar to the bias, we construct a combined dark frame from a large number of 30-second exposures, with that time chosen to match the standard exposure time of a science exposure.
+Similar to the bias, we construct a combined dark frame from 400 input 30-second exposures, with that time chosen to match the standard exposure time of a science exposure.
 As before, all of the previous calibrations are applied to these dark frames, including the bias correction.
 These exposures have an additional cosmic ray rejection step applied after the ISR processing, as these longer exposures may have more of these features than are found on the bias frames.
+For DP2, the dark exposures that were used for constructing the dark had a median of 488 pixels flagged by the cosmic ray rejection code, with small dispersion (375.3 pixels).
+There are some extreme events, with four inputs having more than 10000 pixels marked (up to a maximum of 24,528 found).
 
 \subsection{Combined Flats} \label{sec:calibration-production:flats}
 
@@ -696,7 +776,7 @@ These anaglyph flats have been constructed for each of the $grizy$ filters.
 This process is unavailable for the $u$ filter since a sufficiently blue ultraviolet LED was not available, nor was there space to fit one inside the projection system, and so flats for this filter are constructed from only a single set of flats (with an LED that is at the red end of the bandpass).
 A bluer ultraviolet LED will be available to be periodically swapped in and out for DR1 calibrations.
 
-To begin the construction of new flats, the input exposures are processed through the ISR steps that are applied prior to flat correction, including the bias, dark, crosstalk, gain application, linearization, CTI, and overscan (CZW: reorder to be in order).
+To begin the construction of new flats, the input exposures are processed through the ISR steps that are applied prior to flat correction, including overscan, gain application, crosstalk, linearization, CTI, bias, and dark corrections.
 Statistics are measured on these processed exposures, determining the median value and dispersion on each detector.
 Normalization factors are then measured for the red and blue inputs separately based on these statistics, which should account for any differences in the absolute flux received in each exposure over all detectors.
 These normalization factors are used to properly scale the inputs before they are combined using a clipped mean per pixel into separate intermediate red and blue flats.
@@ -711,9 +791,10 @@ An additional planar gradient is also included in this second fit, to account fo
 
 The measured gradients are then removed from the intermediate flats.
 The planar gradients are simply divided from the per-detector intermediate flats.
-The radial gradient is scaled by a reference gradient to reduce the effects of the vignetting, and to match the vignetting observed in on-sky data (CZW: I need to explain reference gradient better).
+The radial gradient is scaled by a reference gradient to reduce the effects of the vignetting, and to match the vignetting observed in on-sky data.
 A final normalization factor is applied to scale the entire flat to match the intensity level observed within the central 25~mm of the focal plane.
 With these gradient-corrected intermediate flats generated, a final flat is constructed by combining the red and blue intermediates with a filter-specific mixture weight, as listed in Table~\ref{tab:anaglyph_ratios}.
+The weights are chosen so that the combined illumination approximates a flat spectral energy distribution across the filter bandpass.
 
 \begin{deluxetable}{lcc}[t!]
     \tablecaption{Mixture Weights for Anaglyph Flat Construction\label{tab:anaglyph_ratios}}
