@@ -3,6 +3,9 @@
 Instrument signature removal (ISR) is defined by the steps that transform the raw integer image into a floating-point, fully calibrated image in electron units with an associated variance plane, pixel masks, provenance, and metadata used in downstream data release processing tasks.
 % Since this process undoes instrument artifacts that enter into the image in the photon transfer chain, it is crucial for the calibration steps to match the physics of the detectors.
 
+The output exposure's metadata records the calibration epoch, the identifier of the collection used, and a per-step record of which ISR corrections were applied or skipped.
+This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
+
 Corrections are applied in reverse chronological order relative to the photon transfer chain (Figure~\ref{fig:detector-boxes} in \S\ref{sec:lsstcam:detector-model}).
 For example, steps that undo readout-electronics effects appear before steps that undo detector-level effects, and additive corrections precede multiplicative ones such as flat-fielding.
 
@@ -36,125 +39,11 @@ Figure~\ref{fig:isr-pipeline} shows the resulting sequence of corrections as app
     \label{fig:isr-pipeline}
 \end{figure*}
 
-The following outline follows Figure~\ref{fig:isr-pipeline} step by step.
-Each item names the correction applied and the reason it sits at this location in the processing chain.
-
-\begin{enumerate}
-    \item \textbf{Convert integer to float.}
-    Raw images arrive as integer arrays. This first step promotes pixel values to 64-bit floating-point precision.
-
-    \item \textbf{Dither counts.}
-    A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel. The variance added by a uniform distribution of width 1~ADU is $1/12$~ADU$^2$.
-    Dithering after digitization decorrelates the quantization error from the true signal before continuous corrections are applied, which reduces artifacts when later steps interpolate, convolve, or divide the image.
-    It does not remove the bias caused by unequal ADC code widths, which requires a dedicated low-signal differential non-linearity (DNL) correction.
-
-    \item \textbf{Serial overscan correction.}
-    The serial overscan records the total electronic offset of each row, which combines two contributions that originate differently (\S\ref{sec:lsstcam:detector-model}).
-    There is a deliberate DC pedestal added by the REB's bias injection stage and the unintended clock-injected offset from clock transitions coupling into the video signal.
-    This combined offset, plus smaller row-to-row variations, is derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
-    The spatially static part of the clock-injected structure that the overscan does not capture is removed later by the combined bias.
-    Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout.
-    At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from extended pixel edge response (EPER) statistics (\S\ref{sec:calibration-production:cti}).
-
-    The median overscan signal over all the amplifiers in the focal plane is around $26\,000$~ADU\@.   % 26284.55 +/- 1312.6 ADU / 39568.62 +/- 1532 e-
-    After overscan correcting the serial overscan region, we can estimate the detector read noise by measuring the dispersion in these pixels.
-    Using the gain to convert these values to electrons, we find a mean read noise of $5.19 \pm 0.64~\mathrm{e}^{-}$.  % 5.18941097 +/- 0.6366 e-
-
-    \item \textbf{Mask saturated and suspect pixels.}
-    Pixels above the photon transfer curve (PTC) turnoff saturation threshold (\S\ref{sec:calibration-production:ptc}) are flagged as both saturated (``SAT'') and suspect (``SUSPECT'') in the pixel bit mask before further signal corrections.
-    Early masking prevents corrupted or non-physical pixel values from biasing downstream estimates that assume a well-behaved signal.
-
-    \item \textbf{Apply gain.}
-    Per-amplifier gains derived from the PTC (\S\ref{sec:calibration-production:ptc}) convert pixel values from ADU to electrons.
-    Electron units are the native domain for deferred-charge modeling, BFE correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.
-
-    \item \textbf{Crosstalk correction.}
-    Electrical coupling between adjacent amplifier outputs is removed using the crosstalk matrix (\S\ref{sec:calibration-production:xtalk}).
-    Crosstalk is applied after gain conversion so that coupled signals are corrected in electron units, consistent with how the matrix was measured.
-
-    \item \textbf{Parallel overscan correction.}
-    For each column, the parallel overscan pixels are averaged over the overscan rows, and this offset is subtracted from every imaging pixel in that column.
-    It follows crosstalk correction because amplifier coupling can inject signal into overscan regions, and removing crosstalk first yields a cleaner overscan bias estimate.
-
-    \item \textbf{Non-linearity correction.}
-    The double-spline linearizer (\S\ref{sec:calibration-production:linearity}) maps measured counts to a linearized electron count by subtracting absolute and amplifier-relative spline corrections.
-    This step must precede deferred-charge correction (\S\ref{sec:calibration-production:cti}) because the deferred-charge model and its calibration were fit assuming that signal-dependent readout non-linearities have already been removed.
-
-    \item \textbf{Deferred charge correction.}
-    Residual charge left in pixels during serial readout is corrected using the parameters fit in \S\ref{sec:calibration-production:cti}.
-    The global charge transfer inefficiency and the local electronic offset in the output amplifier are corrected on all sensors, while serial charge traps are corrected only on ITL sensors.
-    This step sits late in the readout-electronics portion of the chain because deferred charge is imprinted during serial transfer, after non-linearities in the output path have acted on the signal.
-    We do not correct serial traps on E2V sensors because their trap sizes are too small to measure above the noise and the residual deferred charge is already below the $5\times10^{-6}$ threshold required by the LSST Science Requirements Document \citep{LPM-17}, as described in \S\ref{sec:calibration-production:cti}.
-
-    \item \textbf{Assembly.}
-    With all operations that use the overscan regions completed, the science data regions are joined into a single contiguous image, with the overscan and prescan regions removed.
-
-    \item \textbf{E2V edge-bleed mask.}
-    We flag the ``SAT'' mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
-
-    \item \textbf{ITL dip, SatSag, and edge-bleed masks.}
-    We flag pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip'') with the ITL\_DIP and SUSPECT mask planes. Pixels affected by a sag in apparent signal after saturation (``SatSag'') and by edge bleeding analogous to the E2V case are added to the SAT mask plane.
-    These vendor-specific masks follow deferred-charge correction because the artifacts they mark are readout- and saturation-related structures that should be evaluated on linearized, CTI-corrected data.
-
-    \item \textbf{Bias correction.}
-    A combined bias frame (\S\ref{sec:calibration-production:bias}) is subtracted to remove the fixed-pattern electronic offset that remains after overscan subtraction.
-    Overscan correction instead adjusts for changes in the bias voltage of the CCD output amplifier, which can drift or shift with the power supply and produce row-to-row bias differences.
-
-    \item \textbf{Dark correction.}
-    The combined dark frame (\S\ref{sec:calibration-production:dark}), scaled by the dark time of the science exposure, is subtracted to remove thermal dark current accumulated while charge is collected.
-    The dark time is slightly longer than the exposure time (by nearly one second for typical exposures) because the detector also accumulates dark current during the interval between the end of the clear and the start of readout, beyond the time the shutter is open.
-    Dark correction follows bias subtraction because both are additive offsets, and the dark frame is constructed from bias-subtracted dark exposures.
-
-    \item \textbf{Defect masking.}
-    Persistent bad pixels, columns, and other static defects identified during calibration (\S\ref{sec:calibration-production:defects}) are merged into the pixel mask.
-    Applying the defect mask after deferred-charge, bias, and dark correction places it once readout-electronics effects and integration-period offsets have been removed, matching the processing state in which the defect catalog was built and ensuring that later defect footprint widening and interpolation operate on the full static bad-pixel map.
-
-    \item \textbf{Widen saturation footprints.}
-    The saturation mask is expanded spatially to include pixels affected by charge spill and trails from saturated sources.
-    For DP2, the amount of widening depends on the width of the saturated region.
-    Regions narrower than 6 pixels are left unchanged, regions 6 or 7 pixels wide are expanded by 1 pixel on each side, regions 8 or 9 pixels wide are expanded by 2 pixels on each side, and any wider region is expanded by 4 pixels on each side.
-    This step follows defect masking so that all static bad regions are known before the saturation footprint is grown into neighboring pixels.
-
-    \item \textbf{Brighter-fatter correction.}
-    The electrostatic BFE (\S\ref{sec:calibration-production:bf}) redistributes flux among neighboring pixels to undo charge-cloud repulsion in the silicon.
-    In the photon transfer model (Figure~\ref{fig:detector-boxes}), the BFE is the earliest detector-level effect on incident photons, so its correction appears correspondingly late in ISR.
-    It is applied after the image has been converted to linearized electron units and after additive calibration-frame corrections.
-    The correction also needs to match the boundary shifts, which were also calibrated from PTC covariances measured after these corrections.
-
-    \item \textbf{Variance plane estimation.}
-    An expected variance is assigned to each pixel using the PTC-derived gain and read noise (\S\ref{sec:calibration-production:ptc}).
-    The variance plane is computed after gain application and BFE correction so that it reflects the electron units and pixel correlations relevant to source detection and weighting in downstream analyses.
-
-    At this stage the expected per-pixel variance follows the Poisson-plus-read-noise model
-    \begin{equation}
-        \sigma^2_{ij} = \frac{F_{ij}}{g_a} + \left(\frac{\sigma_n(a)}{g_a}\right)^2,
-        \label{eq:isr-variance}
-    \end{equation}
-    where $F_{ij}$ is the science image value in the current ISR units, $g_a$ is the PTC gain for amplifier~$a$ (electrons per ADU), and $\sigma_n(a)$ is the read noise in electrons.
-    For DP2 science processing, the image is already in electron units, so $g_a = 1$ and Eq.~\ref{eq:isr-variance} reduces to $\sigma^2_{ij} = F_{ij} + \sigma_n(a)^2$.
-    Pixels with non-positive variance are flagged in the mask.
-
-    Since the variance plane is used to estimate the uncertainty on just the charge accumulated in the image, it needs to be computed before flat-field correction.
-
-    \item \textbf{Flat correction.}
-    The normalized flat field (\S\ref{sec:calibration-production:flats}) is divided into the image to correct pixel-to-pixel variations in quantum efficiency and optical throughput.
-    Flat-fielding is a multiplicative correction that must be applied only after all additive electronic and dark offsets have been removed, so that the flat field encodes relative sensitivity rather than residual bias structure.
-
-    \item \textbf{Interpolate masked pixels.}
-    Pixels in the ``SAT'', ``BAD'', and ``UNMASKEDNAN'' mask planes are filled row by row, interpolating from the nearest unmasked values in the same row; ``SUSPECT'' pixels are flagged but not interpolated by default.
-    Interpolation is performed after flat-fielding so that both the science signal and the replacement values are in the same calibrated flux units expected by algorithms that assume a continuous image (for example, background estimation and certain astrometric measurements).
-
-    \item \textbf{Amplifier offsets.}
-    Small per-amplifier additive adjustments derived from flat-field residuals are applied as a final step to reduce residual flux discontinuities at amplifier boundaries.
-    The additive correction is typically less than 1 electron, and the code caps it at a maximum of 5 electrons.
-    The offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
-\end{enumerate}
-
 Two detector effects described in \S\ref{sec:lsstcam:detector-model} are not corrected by the DP2 ISR pipeline.
 There is no dedicated fringe-subtraction step, so residual fringing remains in $z$- and $y$-band images after flat-fielding (\S\ref{sec:discussion:limitations}).
 Tree rings are also not corrected, and their pattern of astrometric distortion is left in the post-ISR images.
 
-Several of these steps flag pixels in the mask plane rather than changing their values.
+Several ISR steps flag pixels in the mask plane rather than changing their values.
 Table~\ref{tab:isr-mask-planes} summarizes the mask planes set during ISR, which downstream tasks use to exclude or down-weight affected pixels in source detection, measurement, and image coaddition.
 
 \begin{deluxetable*}{ll}[t!]
@@ -174,8 +63,117 @@ Table~\ref{tab:isr-mask-planes} summarizes the mask planes set during ISR, which
     \enddata
 \end{deluxetable*}
 
-The output exposure's metadata records the calibration epoch, the identifier of the collection used, and a per-step record of which ISR corrections were applied or skipped.
-This provenance makes it possible to reproduce the processing of any released image, compare products generated across software or calibration versions, and audit the configurations enabled for a given dataset.
+The following subsections follow Figure~\ref{fig:isr-pipeline} step by step.
+Each subsection names the correction applied and the reason it sits at this location in the processing chain.
+
+\subsection{Convert Integer to Float}
+Raw images arrive as integer arrays. This first step promotes pixel values to 64-bit floating-point precision.
+
+\subsection{Dither Counts}
+A uniform random offset in $[-0.5,\,0.5)$~ADU is added to every pixel. The variance added by a uniform distribution of width 1~ADU is $1/12$~ADU$^2$.
+Dithering after digitization decorrelates the quantization error from the true signal before continuous corrections are applied, which reduces artifacts when later steps interpolate, convolve, or divide the image.
+It does not remove the bias caused by unequal ADC code widths, which requires a dedicated low-signal differential non-linearity (DNL) correction.
+
+\subsection{Serial Overscan Correction}
+The serial overscan records the total electronic offset of each row, which combines two contributions that originate differently (\S\ref{sec:lsstcam:detector-model}).
+There is a deliberate DC pedestal added by the REB's bias injection stage and the unintended clock-injected offset from clock transitions coupling into the video signal.
+This combined offset, plus smaller row-to-row variations, is derived from the serial overscan and subtracted from the imaging pixels while the data are still in native analog-to-digital units (ADU).
+The spatially static part of the clock-injected structure that the overscan does not capture is removed later by the combined bias.
+Overscan correction must precede gain conversion because the overscan bias is measured and removed in the same units as the raw readout.
+At this stage we also calculate overscan statistics, including an estimate of the read noise from the scatter in overscan pixels and the amount of deferred charge from extended pixel edge response (EPER) statistics (\S\ref{sec:calibration-production:cti}).
+
+The median overscan signal over all the amplifiers in the focal plane is around $26\,000$~ADU\@.   % 26284.55 +/- 1312.6 ADU / 39568.62 +/- 1532 e-
+After overscan correcting the serial overscan region, we can estimate the detector read noise by measuring the dispersion in these pixels.
+Using the gain to convert these values to electrons, we find a mean read noise of $5.19 \pm 0.64~\mathrm{e}^{-}$.  % 5.18941097 +/- 0.6366 e-
+
+\subsection{Mask Saturated and Suspect Pixels}
+Pixels above the photon transfer curve (PTC) turnoff saturation threshold (\S\ref{sec:calibration-production:ptc}) are flagged as both saturated (``SAT'') and suspect (``SUSPECT'') in the pixel bit mask before further signal corrections.
+Early masking prevents corrupted or non-physical pixel values from biasing downstream estimates that assume a well-behaved signal.
+
+\subsection{Apply Gain}
+Per-amplifier gains derived from the PTC (\S\ref{sec:calibration-production:ptc}) convert pixel values from ADU to electrons.
+Electron units are the native domain for deferred-charge modeling, BFE correction, and variance plane estimation, all of which were calibrated assuming a linear conversion from measured counts to stored charge.
+
+\subsection{Crosstalk Correction}
+Electrical coupling between adjacent amplifier outputs is removed using the crosstalk matrix (\S\ref{sec:calibration-production:xtalk}).
+Crosstalk is applied after gain conversion so that coupled signals are corrected in electron units, consistent with how the matrix was measured.
+
+\subsection{Parallel Overscan Correction}
+For each column, the parallel overscan pixels are averaged over the overscan rows, and this offset is subtracted from every imaging pixel in that column.
+It follows crosstalk correction because amplifier coupling can inject signal into overscan regions, and removing crosstalk first yields a cleaner overscan bias estimate.
+
+\subsection{Non-Linearity Correction}
+The double-spline linearizer (\S\ref{sec:calibration-production:linearity}) maps measured counts to a linearized electron count by subtracting absolute and amplifier-relative spline corrections.
+This step must precede deferred-charge correction (\S\ref{sec:calibration-production:cti}) because the deferred-charge model and its calibration were fit assuming that signal-dependent readout non-linearities have already been removed.
+
+\subsection{Deferred Charge Correction}
+Residual charge left in pixels during serial readout is corrected using the parameters fit in \S\ref{sec:calibration-production:cti}.
+The global charge transfer inefficiency and the local electronic offset in the output amplifier are corrected on all sensors, while serial charge traps are corrected only on ITL sensors.
+This step sits late in the readout-electronics portion of the chain because deferred charge is imprinted during serial transfer, after non-linearities in the output path have acted on the signal.
+We do not correct serial traps on E2V sensors because their trap sizes are too small to measure above the noise and the residual deferred charge is already below the $5\times10^{-6}$ threshold required by the LSST Science Requirements Document \citep{LPM-17}, as described in \S\ref{sec:calibration-production:cti}.
+
+\subsection{Assembly}
+With all operations that use the overscan regions completed, the science data regions are joined into a single contiguous image, with the overscan and prescan regions removed.
+
+\subsection{E2V Edge-Bleed Mask}
+We flag the ``SAT'' mask plane bit for pixels in E2V amplifiers that show uncorrectable charge spill from bright regions at the serial-register edge.
+
+\subsection{ITL Dip, SatSag, and Edge-Bleed Masks}
+We flag pixels in ITL amplifiers that exhibit a pixel column depression in response near certain amplifier boundaries (the ``ITL dip'') with the ITL\_DIP and SUSPECT mask planes. Pixels affected by a sag in apparent signal after saturation (``SatSag'') and by edge bleeding analogous to the E2V case are added to the SAT mask plane.
+These vendor-specific masks follow deferred-charge correction because the artifacts they mark are readout- and saturation-related structures that should be evaluated on linearized, CTI-corrected data.
+
+\subsection{Bias Correction}
+A combined bias frame (\S\ref{sec:calibration-production:bias}) is subtracted to remove the fixed-pattern electronic offset that remains after overscan subtraction.
+Overscan correction instead adjusts for changes in the bias voltage of the CCD output amplifier, which can drift or shift with the power supply and produce row-to-row bias differences.
+
+\subsection{Dark Correction}
+The combined dark frame (\S\ref{sec:calibration-production:dark}), scaled by the dark time of the science exposure, is subtracted to remove thermal dark current accumulated while charge is collected.
+The dark time is slightly longer than the exposure time (by nearly one second for typical exposures) because the detector also accumulates dark current during the interval between the end of the clear and the start of readout, beyond the time the shutter is open.
+Dark correction follows bias subtraction because both are additive offsets, and the dark frame is constructed from bias-subtracted dark exposures.
+
+\subsection{Defect Masking}
+Persistent bad pixels, columns, and other static defects identified during calibration (\S\ref{sec:calibration-production:defects}) are merged into the pixel mask.
+Applying the defect mask after deferred-charge, bias, and dark correction places it once readout-electronics effects and integration-period offsets have been removed, matching the processing state in which the defect catalog was built and ensuring that later defect footprint widening and interpolation operate on the full static bad-pixel map.
+
+\subsection{Widen Saturation Footprints}
+The saturation mask is expanded spatially to include pixels affected by charge spill and trails from saturated sources.
+For DP2, the amount of widening depends on the width of the saturated region.
+Regions narrower than 6 pixels are left unchanged, regions 6 or 7 pixels wide are expanded by 1 pixel on each side, regions 8 or 9 pixels wide are expanded by 2 pixels on each side, and any wider region is expanded by 4 pixels on each side.
+This step follows defect masking so that all static bad regions are known before the saturation footprint is grown into neighboring pixels.
+
+\subsection{Brighter-Fatter Correction}
+The electrostatic BFE (\S\ref{sec:calibration-production:bf}) redistributes flux among neighboring pixels to undo charge-cloud repulsion in the silicon.
+In the photon transfer model (Figure~\ref{fig:detector-boxes}), the BFE is the earliest detector-level effect on incident photons, so its correction appears correspondingly late in ISR.
+It is applied after the image has been converted to linearized electron units and after additive calibration-frame corrections.
+The correction also needs to match the boundary shifts, which were also calibrated from PTC covariances measured after these corrections.
+
+\subsection{Variance Plane Estimation}
+An expected variance is assigned to each pixel using the PTC-derived gain and read noise (\S\ref{sec:calibration-production:ptc}).
+The variance plane is computed after gain application and BFE correction so that it reflects the electron units and pixel correlations relevant to source detection and weighting in downstream analyses.
+
+At this stage the expected per-pixel variance follows the Poisson-plus-read-noise model
+\begin{equation}
+    \sigma^2_{ij} = \frac{F_{ij}}{g_a} + \left(\frac{\sigma_n(a)}{g_a}\right)^2,
+    \label{eq:isr-variance}
+\end{equation}
+where $F_{ij}$ is the science image value in the current ISR units, $g_a$ is the PTC gain for amplifier~$a$ (electrons per ADU), and $\sigma_n(a)$ is the read noise in electrons.
+For DP2 science processing, the image is already in electron units, so $g_a = 1$ and Eq.~\ref{eq:isr-variance} reduces to $\sigma^2_{ij} = F_{ij} + \sigma_n(a)^2$.
+Pixels with non-positive variance are flagged in the mask.
+
+Since the variance plane is used to estimate the uncertainty on just the charge accumulated in the image, it needs to be computed before flat-field correction.
+
+\subsection{Flat Correction}
+The normalized flat field (\S\ref{sec:calibration-production:flats}) is divided into the image to correct pixel-to-pixel variations in quantum efficiency and optical throughput.
+Flat-fielding is a multiplicative correction that must be applied only after all additive electronic and dark offsets have been removed, so that the flat field encodes relative sensitivity rather than residual bias structure.
+
+\subsection{Interpolate Masked Pixels}
+Pixels in the ``SAT'', ``BAD'', and ``UNMASKEDNAN'' mask planes are filled row by row, interpolating from the nearest unmasked values in the same row; ``SUSPECT'' pixels are flagged but not interpolated by default.
+Interpolation is performed after flat-fielding so that both the science signal and the replacement values are in the same calibrated flux units expected by algorithms that assume a continuous image (for example, background estimation and certain astrometric measurements).
+
+\subsection{Amplifier Offsets}
+Small per-amplifier additive adjustments derived from flat-field residuals are applied as a final step to reduce residual flux discontinuities at amplifier boundaries.
+The additive correction is typically less than 1 electron, and the code caps it at a maximum of 5 electrons.
+The offset correction addresses any remaining channel-to-channel offsets visible after the full ISR chain.
 
 \section{Calibration Production and Application} \label{sec:calibration-production}
 % former label: sec:processing:calibration
@@ -276,7 +274,7 @@ However, as shown in the lab study of the crosstalk, and demonstrated in Figure~
 
 \begin{figure}[t]
     \centering
-     \includegraphics[width=0.95\columnwidth]{figures/rtn117-crosstalk_application.png}
+     \includegraphics[width=\columnwidth]{figures/rtn117-crosstalk_application.png}
      \caption{An example crosstalk before and after correction on LSSTCam detector 23 (R03\_S12) for exposure 2025080700300, in a calibration image taken with the CBP near a saturated spot (with peak pixel value at 140,000e$^-$).
       The top panel shows the uncorrected post-ISR image, the middle panel shows the correction with just a linear component, and the bottom panel shows the correction with the two-term non-linear model.
       The image median has been subtracted from each cutout.
@@ -489,7 +487,7 @@ $F_{ij}' = F_{ij} - S_{\mathrm{rel}}(F_{ij}) - S_{\mathrm{abs}}(F_{ij})$.
 
 Several distinct effects in the readout chain displace charge from its pixel of origin and leave correlated structure in the serial overscan: (1) a pixel-to-pixel fractional loss during charge transfer referred to as ``global CTI'', (2) a local electronic-offset hysteresis in the output amplifier that mimics deferred charge in the first few overscan columns, and (3) localized capture and delayed release of charge by isolated trap sites in the serial register.
 Strictly, only global CTI is ``charge transfer inefficiency'' in the textbook sense, but because all three enter at the same point in the photon transfer chain (Figure~\ref{fig:detector-boxes}) and produce overlapping signatures in the serial overscan, we model them together and produce a single calibration data product that we loosely refer to as ``CTI'' in Figure~\ref{fig:calib-dependency}.
-These effects are measured, modeled, and corrected together using the extended pixel edge response (EPER) estimator developed for LSSTCam by \citet{2021JATIS...7d48002S}.
+These effects are measured from overscan regions of images using the extended pixel edge response (EPER) estimator developed for LSSTCam by \citet{2021JATIS...7d48002S}.
 
 Calibrating deferred charge uses the same input data as the linearity dataset (\S\ref{sec:calibration-production:linearity}), estimating the residual charge in electrons left in the overscan region after integrating and reading out flat-field images over a wide range of signal levels.
 The global CTI is quantified by a unitless fraction, but the trap size and the electronic drift scale both carry signal-dependent physical units, so an imperfect conversion from counts back to physical electrons biases the eventual correction.
@@ -525,7 +523,7 @@ First, it varies only the local offset parameters, then the global CTI parameter
 Exposures above configured flux limits are excluded from each stage (typically $10^4$~electrons for the global CTI fit and $1.5\times10^5$~electrons for trap fitting).
 
 The LSST Science Requirements Document requires that total deferred charge measured by EPER be kept under a total of $5\times10^{-6}$ for signal levels below saturation level on each amplifier.
-Within the population of amplifiers in active science detectors, only 95 amplifiers do not meet this requirement without ISR correction, all of which are on ITL detectors.
+Within the population of amplifiers in active science detectors, only 95 amplifiers do not meet this requirement without ISR correction (approximately 3\% of all amplifiers), all of which are on ITL detectors.
 Figure~\ref{fig:cti-global-histogram} shows the distribution of inferred global CTI across all amplifiers on the LSSTCam focal plane, and we show that 26 have a global CTI offset that is already above the maximum allowed threshold.
 The majority of these (19) are bad amplifiers that are in the detector corners (C00, C07, C10, C17) positioned near the serial register, and it is possible that what is inferred as global CTI could be a serial trap that turns on at very low signal levels (below the $10^4$ electron level) and appears as an overall offset that is mistaken for global CTI.
 
@@ -539,7 +537,9 @@ The majority of these (19) are bad amplifiers that are in the detector corners (
 \end{figure}
 
 When correcting deferred charge from an image during ISR, the deferred-charge correction takes in these fit parameters and applies the inverse operators from the model.
-The global CTI and local-offset fits, and the inverse correction operators applied during ISR, are the same for both ITL and E2V sensors.
+Global CTI is fit for every amplifier but is not corrected, because \textbf{[REASON FROM SNYDER ET AL.\ 2021]} \citep{2021JATIS...7d48002S}.
+The fitted global CTI is still used as an input to the local electronic offset fit and to its inverse operator.
+The local electronic offset is fit and corrected in the same way on both ITL and E2V sensors.
 Serial traps are fitted and corrected only on ITL sensors, because the trap sizes on E2V sensors are too small to measure above noise fluctuations and are already negligible enough not to require correction.
 After applying a deferred charge correction, we can re-compute the EPER statistics on the corrected dataset and find that all amplifiers meet the deferred-charge requirement, with a serial EPER below $5\times10^{-6}$ up to saturation (Table~\ref{tab:verification_tests}).
 
