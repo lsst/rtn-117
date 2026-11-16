@@ -12,7 +12,7 @@ The light is likely scattered from bright stars: focused starlight may reflect f
 Similar structures appear in some flat-field images as many small edge flares (referred to as a ``comb'' pattern), possibly linked to the rough-cut silicon edge.
 So far, these features have been seen only in $y$-band, with both focused and unfocused illumination, and they are transient, consistent with a dependence on the chance alignment of bright stars with the focal-plane array.
 They are not yet fully characterized or masked in DP2 processing.
-Science users should treat anomalously bright detections/extended objects near detector edges with caution in $y$-band single-visit and difference images, and verify suspect sources by visual inspection.
+Science users should treat anomalously bright detections/extended objects near detector edges with caution in $y$-band single-exposure and difference images, and verify suspect sources by visual inspection.
 
 \paragraph{Residual non-linearity wiggles}
 The double-spline non-linearity model (\S\ref{sec:calibration-production:linearity}) removes the dominant signal-dependent departure from linear response, but small quasi-oscillatory residuals remain as a function of signal level.
@@ -23,7 +23,7 @@ These ``wiggles'' are irregular, clearly observed beyond noise fluctuations, and
 The DP2 linearizer corrects average amplifier non-linearity but does not yet apply a full low-signal differential non-linearity correction.
 This limitation reflects the difficulty of delivering flat-field illumination below 100 ADU/pixel with the in-dome calibration system.
 Users should exercise caution when relying on photometric or astrometric measurements at low signal levels, in particular when relying on $u$-band sky-background estimates from later processing steps, where backgrounds are typically at or below 100 ADU/pixel.
-Count dithering in ISR (\S\ref{sec:isr-science}) provides interim mitigation until a dedicated DNL correction is measured and deployed.
+Dithering after digitization in ISR (\S\ref{sec:isr-science}) decorrelates the quantization error, but it does not remove the bias from unequal ADC code widths, which will require a dedicated DNL correction.
 
 \paragraph{Detector vignetting models}
 Flat-field calibrations measure relative pixel and filter quantum efficiencies and throughputs under uniform illumination, but they require an accurate model of optical vignetting across the focal plane.
@@ -31,7 +31,7 @@ Improved vignetting models, informed by larger calibration datasets and cross-ch
 
 \paragraph{Color-dependent BFE corrections}
 The BFE is color dependent because its amplitude depends on photon conversion depth in silicon and on the path length over which the transverse electric field acts on drifting electrons.
-Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{y-band} = 0.94 \times a_{00}^{r-band}$, see][]{2024PASP..136d5003B}.
+Laboratory and commissioning measurements show that the effect is chromatic \citep[$a_{00}^{\mathrm{y\text{-}band}} = 0.94 \times a_{00}^{\mathrm{r\text{-}band}}$, see][]{2024PASP..136d5003B}.
 The electrostatic BFE model used in DP2 (\S\ref{sec:calibration-production:bf}) is fit from PTC covariances and applies a single wavelength-averaged correction per detector, derived in the band of the PTC input flats.
 Because the effect is strongest near the bottom of the potential well and the front of the chip, calibrations for $u$ through $i$ bands are approximately consistent, as most light in those bands converts to photoelectrons within the first few microns.
 Separate calibrations are appropriate for $z$- and $y$-band light, which typically convert far deeper into the silicon.
@@ -40,28 +40,82 @@ These corrections were not enabled in DP2 because validation was incomplete, but
 Until then, PSF photometry and shape measurements of bright sources, especially in redder bands, may retain small flux- and filter-dependent biases.
 
 \paragraph{Fringing}
-Fringing is an interference pattern produced when narrow-band emission reflects within the thin, back-illuminated silicon of LSSTCam CCDs.
+Fringing is an interference pattern produced when narrow-band emission reflects within the thick, back-illuminated silicon of LSSTCam CCDs.
 It is driven primarily by night-sky emission lines and becomes appreciable in the $z$- and $y$-bands, where the silicon is increasingly transmissive and OH and other atmospheric lines contribute strongly to the background.
 In-dome flat-field exposures (\S\ref{sec:calibration-production:flats}) imprint and partially divide out a fringe pattern, but the fringing amplitude and phase in science images depend on the time-varying on-sky spectrum and therefore are not fully canceled by flat-fielding alone.
 The DP2 ISR pipeline (\S\ref{sec:isr-science}) does not include a dedicated fringe-subtraction step.
-Residual fringe structure is visible at low surface brightness in $z$- and $y$-band visit images and can bias wide-aperture photometry.
+Residual fringe structure is visible at low surface brightness in $z$- and $y$-band exposures and can bias wide-aperture photometry.
 \citet{2023PASP..135c4503G} predict a fringing amplitude of 0.04\% to 0.2\% in LSST images, depending on the location of a CCD on the focal plane, and a corresponding surface-brightness variation of about 0.6~$\mu$Jy\,arcsec$^{-2}$ in $y$-band sky-background images.
-Corrections based on their fringing models are under development, so users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect visit images for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
+Corrections based on their fringing models are under development, so users analyzing faint extended emission or precision surface-brightness measurements in redder bands should inspect individual exposures for quasi-periodic fringe patterns and treat affected regions with appropriate caution.
 
 \subsection{Calibration Sensitivity to Camera Sequencer} \label{sec:discussion:sequencer}
 Because many instrument signatures depend on the electronic configuration of the sensor and the timing of the readout, a change to the sequencer can invalidate calibration products built under the previous one.
-\citet{2026arXiv260631806M} describe how the LSSTCam sequencer has evolved since the camera arrived at the summit.
+Previous studies, such as \citet{2026arXiv260631806M}, describe in detail how the LSSTCam sequencer has evolved since the camera arrived at the summit.
 The most significant on-sky change was the move to a more relaxed total focal plane readout time from 2\,s to 3\,s.
 The extra time was spent on a longer per-row readout interval, while the other sequencer parameters tuned during laboratory testing were left unchanged.
+
+DP2 includes science data taken under these two sequencers, the original 2\,s \texttt{2s\_v30} sequencer (epoch~1) and the \texttt{3s\_v1} sequencer (epochs~2 and 3; Figure~\ref{fig:calibepoch}).
+Each sequencer requires its own set of calibrations.
+The ISR algorithms applied to science images in DP2 are the same for all sequencers the camera was operating, and only the input exposures and the resulting calibration products differ.
+
+The move to 3\,s readout changed the read noise and bias structure measured in the overscan.
 This lowered the read noise of the E2V sensors by about 0.5\,e$^-$, while the ITL sensors were largely unaffected \citep{2026arXiv260631806M}.
 
-DP2 includes science data taken under two sequencers: the original 2\,s \texttt{2s\_v30} sequencer (epoch~1) and the \texttt{3s\_v1} sequencer (epochs~2 and 3; Figure~\ref{fig:calibepoch}).
-Each sequencer required its own set of calibrations.
-The move to 3\,s readout changed the read noise and bias structure measured in the overscan, and it also changed the size of the crosstalk signal, so the crosstalk coefficients had to be measured again (\S\ref{sec:calibration-production:xtalk}).
-A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on 2026 January 6.
+The 3\,s readout also changed the size of the crosstalk signal.
+The crosstalk coefficients used during commissioning were calibrated from lab measurements at SLAC before the camera was shipped to the summit and were quadratic in the source flux \citep{2021JATIS...7d48002S}, so the sequencer change invalidated them and the crosstalk had to be measured again (\S\ref{sec:calibration-production:xtalk}).
+Table~\ref{tab:crosstalk-typical} shows the median, minimum, maximum, and standard deviation of the coefficients under both sequencers for nearest neighbor amplifiers, for amplifiers on the same side of the midline separated by two and three amplifiers, and for amplifiers across the midline.
+The 3\,s sequencer reduced the crosstalk substantially, with the linear coefficients dropping by about a factor of 2 and the quadratic coefficients by a factor of 3 to 4, or more for nearest neighbor amplifiers.
+The two detector families respond similarly, except that ITL detectors show stronger linear crosstalk to the more distant amplifiers on the same side of the midline, and this difference grows under the 3\,s sequencer.
+
+\begin{deluxetable*}{lllrrrr}[t!]
+    \tablecaption{Typical crosstalk values by detector type in LSSTCam.
+Separation gives the position of the target amplifier relative to the source amplifier.
+NN is the nearest neighbor amplifier, 2A and 3A are amplifiers on the same side of the midline separated by two and three amplifiers, and ML is an amplifier across the detector midline.
+The crosstalk signal is modeled as quadratic in the source flux, so the upper block lists the linear coefficients (dimensionless) and the lower block lists the quadratic coefficients (in units of $(e^-)^{-1}$).
+\label{tab:crosstalk-typical}}
+  \tablehead{
+    \colhead{Detector Type} & \colhead{Sequencer} & \colhead{Separation} & \colhead{Minimum} & \colhead{Median} & \colhead{Maximum} & \colhead{Stdev}
+  }
+  \startdata
+  \cutinhead{Linear Coefficients ($\times10^{-5}$)}
+  E2V & 2s & NN &   $-15.9$ &    $19.1$ &    $67.6$ &    $5.67$ \\
+      &    & 2A &   $-3.74$ &    $3.77$ &    $20.5$ &    $2.59$ \\
+      &    & 3A &   $-5.45$ &    $1.43$ &    $12.1$ &    $1.48$ \\
+      &    & ML &   $-5.97$ &   $0.589$ &    $7.96$ &   $0.646$ \\
+  ITL & 2s & NN &   $-15.9$ &    $19.5$ &    $67.6$ &    $5.95$ \\
+      &    & 2A &   $-3.74$ &    $5.04$ &    $20.6$ &    $3.67$ \\
+      &    & 3A &   $-5.45$ &    $1.98$ &    $12.1$ &    $2.27$ \\
+      &    & ML &   $-4.71$ &   $0.517$ &    $7.96$ &   $0.648$ \\
+  E2V & 3s & NN &   $-23.1$ &    $9.55$ &    $46.3$ &    $4.47$ \\
+      &    & 2A &   $-1.96$ &    $1.54$ &    $14.4$ &    $1.89$ \\
+      &    & 3A &   $-2.35$ &   $0.331$ &    $6.49$ &   $0.993$ \\
+      &    & ML &   $-2.79$ & $-0.0667$ &    $3.16$ &   $0.359$ \\
+  ITL & 3s & NN &   $-23.1$ &    $10.2$ &    $46.4$ &    $5.09$ \\
+      &    & 2A &   $-1.96$ &    $2.79$ &    $14.4$ &    $2.49$ \\
+      &    & 3A &   $-2.35$ &   $0.813$ &    $6.49$ &    $1.44$ \\
+      &    & ML &   $-2.46$ &  $-0.162$ &    $3.16$ &   $0.343$ \\
+  \cutinhead{Quadratic Coefficients ($\times10^{-10}\,(e^-)^{-1}$)}
+  E2V & 2s & NN &   $-20.6$ &   $-2.87$ &    $10.4$ &    $1.49$ \\
+      &    & 2A &   $-7.75$ &   $-1.79$ &    $8.87$ &   $0.710$ \\
+      &    & 3A &   $-6.66$ &   $-1.33$ &    $3.30$ &   $0.632$ \\
+      &    & ML &   $-8.79$ &  $-0.566$ &    $5.73$ &   $0.526$ \\
+  ITL & 2s & NN &   $-20.5$ &   $-2.81$ &    $10.7$ &    $1.51$ \\
+      &    & 2A &   $-7.76$ &   $-1.78$ &    $8.87$ &   $0.742$ \\
+      &    & 3A &   $-4.33$ &   $-1.34$ &    $3.30$ &   $0.661$ \\
+      &    & ML &   $-8.79$ &  $-0.573$ &    $5.33$ &   $0.571$ \\
+  E2V & 3s & NN &   $-4.31$ & $-0.0788$ &    $5.20$ &   $0.527$ \\
+      &    & 2A &   $-3.46$ &  $-0.506$ &    $1.99$ &   $0.248$ \\
+      &    & 3A &   $-2.45$ &  $-0.441$ &   $0.863$ &   $0.181$ \\
+      &    & ML &   $-5.66$ &  $-0.129$ &    $5.72$ &   $0.168$ \\
+  ITL & 3s & NN &   $-4.31$ &  $-0.160$ &    $5.20$ &   $0.499$ \\
+      &    & 2A &   $-3.46$ &  $-0.534$ &    $1.99$ &   $0.261$ \\
+      &    & 3A &   $-2.45$ &  $-0.449$ &   $0.682$ &   $0.177$ \\
+      &    & ML &   $-5.66$ &  $-0.129$ &    $5.72$ &   $0.168$ \\
+  \enddata
+\end{deluxetable*}
+
+A further update, \texttt{3s\_v2}, was introduced after the DP2 data cutoff on January 6, 2026.
 Throughout DP2, detector~101 (R23\_S02) showed signal-dependent correlated noise.
 This noise interfered with the photon transfer curve calibration (\S\ref{sec:calibration-production:ptc}) and with the measurement of both gain and read noise for that detector.
-The correlated noise disappeared with the move to the \texttt{3s\_v2} sequencer.
-No \texttt{3s\_v2} data or calibrations are included in the DP2 release, but \texttt{3s\_v2} is the sequencer used for survey operations from now on.
-For that reason, the calibration products shown in this paper are the \texttt{3s\_v2} products.
-The algorithms are the same for all sequencers; only the input exposures and the resulting calibration products differ.
+The correlated noise was eliminated with the move to the \texttt{3s\_v2} sequencer.
+No data taken with the camera operating under the \texttt{3s\_v2} sequencer are included in the DP2 release, but \texttt{3s\_v2} is the sequencer used going into the start of the LSST survey.
